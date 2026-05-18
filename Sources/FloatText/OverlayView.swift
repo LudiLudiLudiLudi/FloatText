@@ -17,9 +17,9 @@ struct OverlayView: View {
     var body: some View {
         ZStack {
             // Single tint layer driven by state.backgroundOpacity.
-            // No NSVisualEffectView — the HUD material was an inherently dark
-            // frosted glass and the prior slider only modulated a darkness
-            // overlay on top of it, never the real window transparency.
+            // A bare Color, not NSVisualEffectView — the slider must control
+            // the real window transparency, not a darkness layer over a
+            // frosted-glass material.
             Color.black
                 .opacity(state.backgroundOpacity)
                 .ignoresSafeArea()

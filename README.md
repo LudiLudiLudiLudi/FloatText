@@ -1,31 +1,66 @@
 # FloatText
 
-A lightweight floating text overlay for macOS — a conversational cue sheet for live calls and recordings. Native Swift + SwiftUI, with AppKit for the window and `NSTextView` for stable Hebrew/RTL editing.
+A lightweight floating text overlay for macOS. Designed as a conversational cue sheet — keep prompts, talking points, and reminders visible above other windows during live calls and recordings.
 
-This is the MVP build: local dev only. No signing, no notarization, no App Store, no network, no analytics.
+Native Swift + SwiftUI + AppKit. `NSTextView` under the hood for stable Hebrew / RTL editing.
 
-## Install (recommended)
+## Status
 
-Build a Release `.app` and copy it into `~/Applications`:
+MVP. Local builds only — no signing, no notarization, no App Store. Runs on macOS 14 Sonoma or later.
+
+## Screenshot
+
+_Screenshot coming soon._
+
+## What FloatText is
+
+- A small translucent floating panel that stays above other apps
+- A quick place to read from, copy from, and edit during a live conversation
+- Local-only — nothing leaves your machine
+
+## What FloatText is not
+
+- Not a note-taking app
+- Not a document editor
+- Not a markdown renderer
+- Not synced — no iCloud, no accounts, no cloud
+- Not (yet) a notarized public release
+
+## Features
+
+- Frameless floating panel that stays above other windows (Always on Top toggle)
+- Editable multiline `NSTextView` with Hebrew / RTL support
+- All smart-quote / auto-substitution / auto-correct disabled — keeps Hebrew punctuation stable
+- Standard copy / paste / cut / undo
+- Text alignment: left / center / right
+- RTL ↔ LTR toggle
+- Font size + / −
+- Text color picker
+- Background opacity slider — real transparency, see through to the windows beneath
+- Focus Mode — hides the controls bar; text stays editable; hover the panel to reveal controls
+- Click-through Mode — clicks pass through to apps beneath (reversible from the menu bar icon)
+- Menu bar icon with Show/Hide, mode toggles, and Quit
+- Hide Dock Icon toggle
+- Launch at Login toggle
+- Local persistence of text, window frame, font size, color, opacity, alignment, RTL state, and toggles
+- First-launch seed text with a short Hebrew conversation structure
+
+## Install
 
 ```bash
+git clone https://github.com/<your-user>/FloatText.git
+cd FloatText
 ./scripts/install.sh
 open ~/Applications/FloatText.app
 ```
 
-To install for all users in `/Applications` instead (requires sudo):
+To install for all users in `/Applications` (sudo):
 
 ```bash
 ./scripts/install.sh --system
 ```
 
-The script:
-1. Runs `xcodebuild` in Release configuration
-2. Stops any running FloatText
-3. Replaces any prior install at the target path
-4. Registers the new `.app` with LaunchServices
-
-Installs are idempotent — rerun `install.sh` after any code change.
+The script builds in Release, stops any running FloatText, replaces an existing install if present, and registers the new `.app` with LaunchServices. Re-run after any code change — installs are idempotent.
 
 ## Uninstall
 
@@ -33,43 +68,24 @@ Installs are idempotent — rerun `install.sh` after any code change.
 ./scripts/uninstall.sh             # remove from ~/Applications, keep settings
 ./scripts/uninstall.sh --system    # remove from /Applications (sudo)
 ./scripts/uninstall.sh --purge     # also delete UserDefaults (saved text,
-                                   # window position, font size, colors, etc.)
+                                   # window position, colors, font size, etc.)
 ```
 
 `--system` and `--purge` may be combined.
 
-## Run from Xcode (development)
+## Build from source
+
+Requires Xcode 15+ on macOS 14 or later.
 
 ```bash
 ./scripts/open.sh    # opens FloatText.xcodeproj in Xcode
 ```
 
-Then ⌘R in Xcode.
+Then ⌘R.
 
-> If you have Cursor, AppCode, or another editor installed, it may have taken over as the default opener for `.xcodeproj` bundles. `open.sh` forces Xcode via `open -b com.apple.dt.Xcode` regardless of the default handler. If you'd rather open it manually, run: `open -a Xcode FloatText.xcodeproj`.
+> If Cursor, AppCode, or another editor has registered itself as the default opener for `.xcodeproj`, `open.sh` forces Xcode via `open -b com.apple.dt.Xcode`. To do it manually: `open -a Xcode FloatText.xcodeproj`.
 
-A `Package.swift` is also included for `swift build` / `swift run` (CLI binary only, not a `.app` bundle — useful for quick compile checks but the menu-bar app behavior needs the `.app` bundle, so use Xcode or `install.sh` for actual runs).
-
-Requires Xcode 15+ on macOS 14 Sonoma or later.
-
-## Features
-
-- Frameless floating panel that stays above other windows (toggle: Always on Top)
-- Editable multiline `NSTextView` with Hebrew/RTL support
-- Smart-quote / auto-substitution / auto-correct all OFF (Hebrew punctuation stability)
-- Standard copy / paste / cut / undo
-- Text alignment: left / center / right
-- RTL ↔ LTR toggle
-- Font size +/-
-- Text color picker
-- Background opacity slider
-- Focus Mode — hides the controls bar; text remains editable
-- Click-through Mode — clicks pass through to apps beneath. **Reversible only from the menu bar.**
-- Menu bar icon with Show/Hide, mode toggles, Quit
-- Hide Dock Icon toggle (conditional — see "Known limits" below)
-- Launch at Login toggle (conditional — see "Known limits" below)
-- Local persistence via `UserDefaults`: text, frame, font size, color, opacity, alignment, RTL, toggles
-- First-launch seed text with a short Hebrew conversation structure
+A `Package.swift` is included for `swift build` / `swift run`, but those produce a bare CLI binary rather than a `.app` bundle — for the menu bar and floating panel behavior to work, use Xcode or `install.sh`.
 
 ## Keyboard shortcuts
 
@@ -77,57 +93,47 @@ Requires Xcode 15+ on macOS 14 Sonoma or later.
 - ⌘⇧F — Toggle Focus Mode
 - ⌘⇧R — Toggle RTL / LTR
 - ⌘Q  — Quit
-- Standard ⌘C / ⌘V / ⌘X / ⌘Z / ⌘A in the text view
+- Standard ⌘C / ⌘V / ⌘X / ⌘Z / ⌘A inside the text view
 
-## Step-3 focus gate (mandatory acceptance check)
+## Known limitations
 
-Per the implementation plan, before relying on this build during a real recording, verify in the running app:
+- **Unsigned local builds only.** No code signing, no notarization, no sandbox. Distributing the built `.app` to another Mac will trigger a Gatekeeper warning.
+- **Launch at Login** uses `SMAppService`, which expects the app to live at a stable install location. From an unsigned development build it may report `.notRegistered` even after enabling — install via `install.sh` first.
+- **No global hotkey** for show/hide. The menu bar icon is the always-available entry point.
+- **One panel, one persisted text blob.** No multi-document / tabs.
+- **Narrow panels + large text** can wrap awkwardly. Either widen the panel or reduce font size to taste.
 
-1. Hebrew typing
-2. Mixed Hebrew/English paste
-3. Mouse + ⇧+arrows selection
-4. ⌘C / ⌘V / ⌘X / ⌘Z
-5. Clicking the panel makes the text view focused
-6. Focus returns after using the menu bar
-7. Quotes are not auto-converted
+## Privacy
 
-If any item fails, the activating `NSPanel` choice in `FloatingPanel.swift` is wrong — fall back to a plain `NSWindow`.
-
-## Known limits (MVP)
-
-- **Local dev only.** No code signing, no notarization, no sandbox. Don't distribute this build to others.
-- **Launch at Login** uses `SMAppService` which requires the app to be in a stable, signed install location. From an unsigned `swift run` / Xcode-debug build, the toggle may report `.notRegistered` even after enabling — this is expected. The UI reflects the true `SMAppService` state, not a cached value.
-- **Hide Dock Icon** toggles `NSApp.setActivationPolicy(.accessory ↔ .regular)` at runtime. If it ever causes panel-focus regressions, revert it via the menu bar (it will toggle back to `.regular`).
-- **No global hotkey** for show/hide. The menu bar item is the always-available entry point.
-- **No multi-document.** One panel, one persisted text blob. Deliberate.
+- Zero network traffic
+- No analytics, no telemetry
+- No accounts, no cloud, no sync
+- All persisted state lives in `UserDefaults` under `com.floattext.FloatText`
 
 ## Architecture
 
 ```
 Sources/FloatText/
-├── FloatTextApp.swift            @main + AppDelegate + MenuBarExtra
-├── AppState.swift                @Published persisted state, seed text, color helpers
-├── FloatingPanel.swift           NSPanel subclass — activating, floating, borderless feel
-├── FloatingPanelController.swift Wires panel to SwiftUI host; observes state
-├── OverlayView.swift             SwiftUI root: VisualEffect + tint + text + controls
-├── ControlsBar.swift             A-/A+, color, opacity, alignment, RTL, Focus toggle
-├── RTLTextView.swift             NSViewRepresentable around NSTextView (RTL-stable)
-├── VisualEffectView.swift        NSVisualEffectView bridge
-├── MenuBarMenu.swift             MenuBarExtra contents
-└── LaunchAtLogin.swift           SMAppService wrapper
+├── FloatTextApp.swift             @main + AppDelegate + MenuBarExtra
+├── AppState.swift                 @Published persisted state, seed text, color helpers
+├── FloatingPanel.swift            NSPanel subclass — activating, floating, borderless feel
+├── FloatingPanelController.swift  Wires panel to SwiftUI host; observes state
+├── OverlayView.swift              SwiftUI root: tint + text + controls
+├── ControlsBar.swift              A-/A+, color, opacity, alignment, RTL, Focus toggle
+├── RTLTextView.swift              NSViewRepresentable around NSTextView (RTL-stable)
+├── MenuBarMenu.swift              MenuBarExtra contents
+└── LaunchAtLogin.swift            SMAppService wrapper
 ```
 
-See [docs/design-notes.md](docs/design-notes.md) for rationale on the panel choice and RTL handling.
+See [docs/design-notes.md](docs/design-notes.md) for rationale on the panel choice, the NSTextView decision, and RTL handling.
 
-## Privacy
+## Roadmap
 
-- Zero network traffic.
-- No analytics, no telemetry, no accounts, no cloud.
-- All persisted state lives in `UserDefaults` for the app's bundle id.
-
-## Roadmap (post-MVP)
-
-- Signed/notarized Developer ID build
-- Global hotkey for Show/Hide
+- Signed / notarized Developer ID build
+- Global hotkey for Show / Hide
 - Optional read-only / teleprompter scroll mode
 - Multiple stored snippets
+
+## License
+
+No license file yet. Treat as all rights reserved until one is added.
