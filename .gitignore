@@ -8,3 +8,4 @@ build/
 *.xcworkspace/xcuserdata/
 xcuserdata/
 Package.resolved
+*.log

@@ -20,15 +20,14 @@ final class FloatingPanelController: NSObject, NSWindowDelegate, ObservableObjec
         let host = NSHostingView(rootView: OverlayView().environmentObject(state))
         // NSWindow auto-sets autoresizingMask + frame on contentView when
         // translatesAutoresizingMaskIntoConstraints is left at its default (true).
-        // The previous explicit `= false` with no replacement constraints left
-        // the host view's frame stuck at initial size — SwiftUI hit-testing then
-        // used a stale layout and clicks landed in dead zones. Removed.
+        // Do NOT set it to false here without adding replacement constraints —
+        // doing so leaves the host view's frame stuck and SwiftUI hit-testing
+        // uses a stale layout, so clicks fall into dead zones.
         panel.contentView = host
         panel.delegate = self
         panel.setFrame(state.windowFrame, display: false)
         applyAlwaysOnTop()
         applyClickThrough()
-        print("[FT] panel configured: frame=\(panel.frame) contentView.frame=\(host.frame)")
     }
 
     private func observeState() {

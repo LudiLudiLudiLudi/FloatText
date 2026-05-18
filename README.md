@@ -4,17 +4,51 @@ A lightweight floating text overlay for macOS — a conversational cue sheet for
 
 This is the MVP build: local dev only. No signing, no notarization, no App Store, no network, no analytics.
 
-## Run
+## Install (recommended)
+
+Build a Release `.app` and copy it into `~/Applications`:
+
+```bash
+./scripts/install.sh
+open ~/Applications/FloatText.app
+```
+
+To install for all users in `/Applications` instead (requires sudo):
+
+```bash
+./scripts/install.sh --system
+```
+
+The script:
+1. Runs `xcodebuild` in Release configuration
+2. Stops any running FloatText
+3. Replaces any prior install at the target path
+4. Registers the new `.app` with LaunchServices
+
+Installs are idempotent — rerun `install.sh` after any code change.
+
+## Uninstall
+
+```bash
+./scripts/uninstall.sh             # remove from ~/Applications, keep settings
+./scripts/uninstall.sh --system    # remove from /Applications (sudo)
+./scripts/uninstall.sh --purge     # also delete UserDefaults (saved text,
+                                   # window position, font size, colors, etc.)
+```
+
+`--system` and `--purge` may be combined.
+
+## Run from Xcode (development)
 
 ```bash
 ./scripts/open.sh    # opens FloatText.xcodeproj in Xcode
 ```
 
-Then ⌘R in Xcode. The build produces a proper `.app` bundle with generated `Info.plist` and ad-hoc local code signing.
+Then ⌘R in Xcode.
 
 > If you have Cursor, AppCode, or another editor installed, it may have taken over as the default opener for `.xcodeproj` bundles. `open.sh` forces Xcode via `open -b com.apple.dt.Xcode` regardless of the default handler. If you'd rather open it manually, run: `open -a Xcode FloatText.xcodeproj`.
 
-A `Package.swift` is also included for `swift build` / `swift run` (CLI binary only, not a `.app` bundle — useful for quick compile checks but the menu-bar app behavior needs the `.app` bundle, so use Xcode for actual runs).
+A `Package.swift` is also included for `swift build` / `swift run` (CLI binary only, not a `.app` bundle — useful for quick compile checks but the menu-bar app behavior needs the `.app` bundle, so use Xcode or `install.sh` for actual runs).
 
 Requires Xcode 15+ on macOS 14 Sonoma or later.
 
