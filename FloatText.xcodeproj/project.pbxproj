@@ -17,6 +17,7 @@
 		B100000000000000000000A8 /* VisualEffectView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B000000000000000000000A8 /* VisualEffectView.swift */; };
 		B100000000000000000000A9 /* MenuBarMenu.swift in Sources */ = {isa = PBXBuildFile; fileRef = B000000000000000000000A9 /* MenuBarMenu.swift */; };
 		B100000000000000000000AA /* LaunchAtLogin.swift in Sources */ = {isa = PBXBuildFile; fileRef = B000000000000000000000AA /* LaunchAtLogin.swift */; };
+		B100000000000000000000AB /* BuildInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = B000000000000000000000AB /* BuildInfo.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -31,6 +32,7 @@
 		B000000000000000000000A8 /* VisualEffectView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VisualEffectView.swift; sourceTree = "<group>"; };
 		B000000000000000000000A9 /* MenuBarMenu.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarMenu.swift; sourceTree = "<group>"; };
 		B000000000000000000000AA /* LaunchAtLogin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LaunchAtLogin.swift; sourceTree = "<group>"; };
+		B000000000000000000000AB /* BuildInfo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BuildInfo.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -73,6 +75,7 @@
 				B000000000000000000000A8 /* VisualEffectView.swift */,
 				B000000000000000000000A9 /* MenuBarMenu.swift */,
 				B000000000000000000000AA /* LaunchAtLogin.swift */,
+				B000000000000000000000AB /* BuildInfo.swift */,
 			);
 			name = FloatText;
 			path = Sources/FloatText;
@@ -156,6 +159,7 @@
 				B100000000000000000000A8 /* VisualEffectView.swift in Sources */,
 				B100000000000000000000A9 /* MenuBarMenu.swift in Sources */,
 				B100000000000000000000AA /* LaunchAtLogin.swift in Sources */,
+				B100000000000000000000AB /* BuildInfo.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

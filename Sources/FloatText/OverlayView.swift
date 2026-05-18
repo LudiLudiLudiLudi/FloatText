@@ -15,12 +15,22 @@ struct OverlayView: View {
     }
 
     var body: some View {
-        ZStack {
+        ZStack(alignment: .topLeading) {
             VisualEffectView(material: .hudWindow, blendingMode: .behindWindow, state: .active)
                 .ignoresSafeArea()
             Color.black
                 .opacity(state.backgroundOpacity)
                 .ignoresSafeArea()
+
+            // Temporary debug marker — confirms the running build matches source.
+            Text("build \(BuildInfo.shortHash)")
+                .font(.system(size: 9, weight: .medium, design: .monospaced))
+                .foregroundStyle(Color.green.opacity(0.85))
+                .padding(.horizontal, 4)
+                .padding(.vertical, 1)
+                .background(Color.black.opacity(0.55))
+                .cornerRadius(3)
+                .padding(4)
 
             VStack(spacing: 0) {
                 RTLTextView(
