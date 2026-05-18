@@ -7,16 +7,12 @@ This is the MVP build: local dev only. No signing, no notarization, no App Store
 ## Run
 
 ```bash
-./scripts/open.sh    # opens Package.swift in Xcode
+./scripts/open.sh    # opens FloatText.xcodeproj in Xcode
 ```
 
-Then ⌘R in Xcode.
+Then ⌘R in Xcode. The build produces a proper `.app` bundle with generated `Info.plist` and ad-hoc local code signing.
 
-Alternatively from the command line:
-
-```bash
-swift run            # builds and runs (no proper .app bundle — Xcode is preferred)
-```
+A `Package.swift` is also included for `swift build` / `swift run` (CLI binary only, not a `.app` bundle — useful for quick compile checks but the menu-bar app behavior needs the `.app` bundle, so use Xcode for actual runs).
 
 Requires Xcode 15+ on macOS 14 Sonoma or later.
 

@@ -1,0 +1,303 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 56;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		B100000000000000000000A1 /* FloatTextApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = B000000000000000000000A1 /* FloatTextApp.swift */; };
+		B100000000000000000000A2 /* AppState.swift in Sources */ = {isa = PBXBuildFile; fileRef = B000000000000000000000A2 /* AppState.swift */; };
+		B100000000000000000000A3 /* FloatingPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = B000000000000000000000A3 /* FloatingPanel.swift */; };
+		B100000000000000000000A4 /* FloatingPanelController.swift in Sources */ = {isa = PBXBuildFile; fileRef = B000000000000000000000A4 /* FloatingPanelController.swift */; };
+		B100000000000000000000A5 /* RTLTextView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B000000000000000000000A5 /* RTLTextView.swift */; };
+		B100000000000000000000A6 /* OverlayView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B000000000000000000000A6 /* OverlayView.swift */; };
+		B100000000000000000000A7 /* ControlsBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = B000000000000000000000A7 /* ControlsBar.swift */; };
+		B100000000000000000000A8 /* VisualEffectView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B000000000000000000000A8 /* VisualEffectView.swift */; };
+		B100000000000000000000A9 /* MenuBarMenu.swift in Sources */ = {isa = PBXBuildFile; fileRef = B000000000000000000000A9 /* MenuBarMenu.swift */; };
+		B100000000000000000000AA /* LaunchAtLogin.swift in Sources */ = {isa = PBXBuildFile; fileRef = B000000000000000000000AA /* LaunchAtLogin.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		A100000000000000000000AF /* FloatText.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = FloatText.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		B000000000000000000000A1 /* FloatTextApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FloatTextApp.swift; sourceTree = "<group>"; };
+		B000000000000000000000A2 /* AppState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppState.swift; sourceTree = "<group>"; };
+		B000000000000000000000A3 /* FloatingPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FloatingPanel.swift; sourceTree = "<group>"; };
+		B000000000000000000000A4 /* FloatingPanelController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FloatingPanelController.swift; sourceTree = "<group>"; };
+		B000000000000000000000A5 /* RTLTextView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RTLTextView.swift; sourceTree = "<group>"; };
+		B000000000000000000000A6 /* OverlayView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OverlayView.swift; sourceTree = "<group>"; };
+		B000000000000000000000A7 /* ControlsBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ControlsBar.swift; sourceTree = "<group>"; };
+		B000000000000000000000A8 /* VisualEffectView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VisualEffectView.swift; sourceTree = "<group>"; };
+		B000000000000000000000A9 /* MenuBarMenu.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarMenu.swift; sourceTree = "<group>"; };
+		B000000000000000000000AA /* LaunchAtLogin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LaunchAtLogin.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		A100000000000000000000AD /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		A100000000000000000000A3 /* MainGroup */ = {
+			isa = PBXGroup;
+			children = (
+				A100000000000000000000A5 /* FloatText */,
+				A100000000000000000000A4 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		A100000000000000000000A4 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				A100000000000000000000AF /* FloatText.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		A100000000000000000000A5 /* FloatText */ = {
+			isa = PBXGroup;
+			children = (
+				B000000000000000000000A1 /* FloatTextApp.swift */,
+				B000000000000000000000A2 /* AppState.swift */,
+				B000000000000000000000A3 /* FloatingPanel.swift */,
+				B000000000000000000000A4 /* FloatingPanelController.swift */,
+				B000000000000000000000A5 /* RTLTextView.swift */,
+				B000000000000000000000A6 /* OverlayView.swift */,
+				B000000000000000000000A7 /* ControlsBar.swift */,
+				B000000000000000000000A8 /* VisualEffectView.swift */,
+				B000000000000000000000A9 /* MenuBarMenu.swift */,
+				B000000000000000000000AA /* LaunchAtLogin.swift */,
+			);
+			name = FloatText;
+			path = Sources/FloatText;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		A100000000000000000000A2 /* FloatText */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = A100000000000000000000A7 /* Build configuration list for PBXNativeTarget "FloatText" */;
+			buildPhases = (
+				A100000000000000000000AC /* Sources */,
+				A100000000000000000000AD /* Frameworks */,
+				A100000000000000000000AE /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = FloatText;
+			productName = FloatText;
+			productReference = A100000000000000000000AF /* FloatText.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		A100000000000000000000A1 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 1500;
+				LastUpgradeCheck = 1500;
+				TargetAttributes = {
+					A100000000000000000000A2 = {
+						CreatedOnToolsVersion = 15.0;
+					};
+				};
+			};
+			buildConfigurationList = A100000000000000000000A6 /* Build configuration list for PBXProject "FloatText" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = A100000000000000000000A3;
+			productRefGroup = A100000000000000000000A4 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				A100000000000000000000A2 /* FloatText */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		A100000000000000000000AE /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		A100000000000000000000AC /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				B100000000000000000000A1 /* FloatTextApp.swift in Sources */,
+				B100000000000000000000A2 /* AppState.swift in Sources */,
+				B100000000000000000000A3 /* FloatingPanel.swift in Sources */,
+				B100000000000000000000A4 /* FloatingPanelController.swift in Sources */,
+				B100000000000000000000A5 /* RTLTextView.swift in Sources */,
+				B100000000000000000000A6 /* OverlayView.swift in Sources */,
+				B100000000000000000000A7 /* ControlsBar.swift in Sources */,
+				B100000000000000000000A8 /* VisualEffectView.swift in Sources */,
+				B100000000000000000000A9 /* MenuBarMenu.swift in Sources */,
+				B100000000000000000000AA /* LaunchAtLogin.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		A100000000000000000000A8 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				COPY_PHASE_STRIP = NO;
+				DEAD_CODE_STRIPPING = YES;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = macosx;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		A100000000000000000000A9 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				COPY_PHASE_STRIP = NO;
+				DEAD_CODE_STRIPPING = YES;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_NO_COMMON_BLOCKS = YES;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				SDKROOT = macosx;
+				SWIFT_COMPILATION_MODE = wholemodule;
+			};
+			name = Release;
+		};
+		A100000000000000000000AA /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CODE_SIGN_IDENTITY = "-";
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				ENABLE_HARDENED_RUNTIME = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = FloatText;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MARKETING_VERSION = 0.1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.floattext.FloatText;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		A100000000000000000000AB /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CODE_SIGN_IDENTITY = "-";
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				ENABLE_HARDENED_RUNTIME = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = FloatText;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MARKETING_VERSION = 0.1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.floattext.FloatText;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		A100000000000000000000A6 /* Build configuration list for PBXProject "FloatText" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A100000000000000000000A8 /* Debug */,
+				A100000000000000000000A9 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		A100000000000000000000A7 /* Build configuration list for PBXNativeTarget "FloatText" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A100000000000000000000AA /* Debug */,
+				A100000000000000000000AB /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = A100000000000000000000A1 /* Project object */;
+}
