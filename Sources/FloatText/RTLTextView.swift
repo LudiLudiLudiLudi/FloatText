@@ -59,6 +59,7 @@ struct RTLTextView: NSViewRepresentable {
 
     func updateNSView(_ scrollView: NSScrollView, context: Context) {
         guard let textView = scrollView.documentView as? NSTextView else { return }
+        print("[FT] RTLTextView.updateNSView fontSize=\(fontSize) color=\(textColor.hexString) align=\(alignment.rawValue) isRTL=\(isRTL)")
         if textView.string != text {
             let selected = textView.selectedRange()
             textView.string = text

@@ -20,20 +20,20 @@ final class AppState: ObservableObject {
     @Published var text: String { didSet { scheduleTextPersist() } }
 
     // Typography & color
-    @Published var fontSize: CGFloat { didSet { ud.set(Double(fontSize), forKey: K.fontSize) } }
-    @Published var textColorHex: String { didSet { ud.set(textColorHex, forKey: K.textColorHex) } }
+    @Published var fontSize: CGFloat { didSet { print("[FT] AppState.fontSize \(oldValue) -> \(fontSize)"); ud.set(Double(fontSize), forKey: K.fontSize) } }
+    @Published var textColorHex: String { didSet { print("[FT] AppState.textColorHex \(oldValue) -> \(textColorHex)"); ud.set(textColorHex, forKey: K.textColorHex) } }
 
     // Window appearance
-    @Published var backgroundOpacity: Double { didSet { ud.set(backgroundOpacity, forKey: K.bgOpacity) } }
+    @Published var backgroundOpacity: Double { didSet { print("[FT] AppState.backgroundOpacity \(oldValue) -> \(backgroundOpacity)"); ud.set(backgroundOpacity, forKey: K.bgOpacity) } }
 
     // Text behavior
-    @Published var alignment: TextAlignmentOption { didSet { ud.set(alignment.rawValue, forKey: K.alignment) } }
-    @Published var isRTL: Bool { didSet { ud.set(isRTL, forKey: K.isRTL) } }
+    @Published var alignment: TextAlignmentOption { didSet { print("[FT] AppState.alignment \(oldValue) -> \(alignment)"); ud.set(alignment.rawValue, forKey: K.alignment) } }
+    @Published var isRTL: Bool { didSet { print("[FT] AppState.isRTL \(oldValue) -> \(isRTL)"); ud.set(isRTL, forKey: K.isRTL) } }
 
     // Window behavior
     @Published var alwaysOnTop: Bool { didSet { ud.set(alwaysOnTop, forKey: K.alwaysOnTop) } }
     @Published var clickThrough: Bool { didSet { ud.set(clickThrough, forKey: K.clickThrough) } }
-    @Published var focusMode: Bool { didSet { ud.set(focusMode, forKey: K.focusMode) } }
+    @Published var focusMode: Bool { didSet { print("[FT] AppState.focusMode \(oldValue) -> \(focusMode)"); ud.set(focusMode, forKey: K.focusMode) } }
     @Published var hideDockIcon: Bool { didSet { ud.set(hideDockIcon, forKey: K.hideDockIcon) } }
     @Published var launchAtLogin: Bool { didSet { ud.set(launchAtLogin, forKey: K.launchAtLogin) } }
 

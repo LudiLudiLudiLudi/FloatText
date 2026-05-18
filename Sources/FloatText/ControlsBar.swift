@@ -10,12 +10,18 @@ struct ControlsBar: View {
     var body: some View {
         VStack(spacing: 4) {
             HStack(spacing: 6) {
-                Button { state.fontSize = max(10, state.fontSize - 1) } label: {
+                Button {
+                    print("[FT] ControlsBar A- tapped")
+                    state.fontSize = max(10, state.fontSize - 1)
+                } label: {
                     Image(systemName: "textformat.size.smaller")
                 }
                 .help("Decrease font size")
 
-                Button { state.fontSize = min(48, state.fontSize + 1) } label: {
+                Button {
+                    print("[FT] ControlsBar A+ tapped")
+                    state.fontSize = min(48, state.fontSize + 1)
+                } label: {
                     Image(systemName: "textformat.size.larger")
                 }
                 .help("Increase font size")
@@ -23,6 +29,7 @@ struct ControlsBar: View {
                 ColorPicker("", selection: Binding(
                     get: { Color(nsColor: state.textColor) },
                     set: { newValue in
+                        print("[FT] ControlsBar ColorPicker set")
                         let ns = NSColor(newValue).usingColorSpace(.sRGB) ?? .white
                         state.textColorHex = ns.hexString
                     }
@@ -31,7 +38,13 @@ struct ControlsBar: View {
                 .frame(width: 24, height: 18)
                 .help("Text color")
 
-                Picker("", selection: $state.alignment) {
+                Picker("", selection: Binding(
+                    get: { state.alignment },
+                    set: {
+                        print("[FT] ControlsBar Alignment Picker -> \($0)")
+                        state.alignment = $0
+                    }
+                )) {
                     Image(systemName: "text.alignleft").tag(TextAlignmentOption.left)
                     Image(systemName: "text.aligncenter").tag(TextAlignmentOption.center)
                     Image(systemName: "text.alignright").tag(TextAlignmentOption.right)
@@ -41,6 +54,7 @@ struct ControlsBar: View {
                 .frame(minWidth: 84, idealWidth: 96, maxWidth: 110)
 
                 Button {
+                    print("[FT] ControlsBar RTL/LTR tapped, was \(state.isRTL)")
                     state.isRTL.toggle()
                 } label: {
                     Text(state.isRTL ? "RTL" : "LTR")
@@ -50,6 +64,7 @@ struct ControlsBar: View {
                 .help("Toggle text direction")
 
                 Button {
+                    print("[FT] ControlsBar Focus toggle tapped, was \(state.focusMode)")
                     state.focusMode.toggle()
                 } label: {
                     Image(systemName: state.focusMode ? "eye" : "eye.slash")
@@ -60,9 +75,15 @@ struct ControlsBar: View {
             HStack(spacing: 6) {
                 Image(systemName: "circle.lefthalf.filled")
                     .foregroundStyle(.white.opacity(0.6))
-                Slider(value: $state.backgroundOpacity, in: 0.0...1.0)
-                    .controlSize(.mini)
-                    .help("Background opacity")
+                Slider(value: Binding(
+                    get: { state.backgroundOpacity },
+                    set: {
+                        print("[FT] ControlsBar Opacity Slider -> \($0)")
+                        state.backgroundOpacity = $0
+                    }
+                ), in: 0.0...1.0)
+                .controlSize(.mini)
+                .help("Background opacity")
             }
         }
         .buttonStyle(.borderless)
