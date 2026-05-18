@@ -12,6 +12,8 @@ This is the MVP build: local dev only. No signing, no notarization, no App Store
 
 Then ⌘R in Xcode. The build produces a proper `.app` bundle with generated `Info.plist` and ad-hoc local code signing.
 
+> If you have Cursor, AppCode, or another editor installed, it may have taken over as the default opener for `.xcodeproj` bundles. `open.sh` forces Xcode via `open -b com.apple.dt.Xcode` regardless of the default handler. If you'd rather open it manually, run: `open -a Xcode FloatText.xcodeproj`.
+
 A `Package.swift` is also included for `swift build` / `swift run` (CLI binary only, not a `.app` bundle — useful for quick compile checks but the menu-bar app behavior needs the `.app` bundle, so use Xcode for actual runs).
 
 Requires Xcode 15+ on macOS 14 Sonoma or later.
