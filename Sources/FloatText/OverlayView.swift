@@ -15,22 +15,14 @@ struct OverlayView: View {
     }
 
     var body: some View {
-        ZStack(alignment: .topLeading) {
-            VisualEffectView(material: .hudWindow, blendingMode: .behindWindow, state: .active)
-                .ignoresSafeArea()
+        ZStack {
+            // Single tint layer driven by state.backgroundOpacity.
+            // No NSVisualEffectView — the HUD material was an inherently dark
+            // frosted glass and the prior slider only modulated a darkness
+            // overlay on top of it, never the real window transparency.
             Color.black
                 .opacity(state.backgroundOpacity)
                 .ignoresSafeArea()
-
-            // Temporary debug marker — confirms the running build matches source.
-            Text("build \(BuildInfo.shortHash)")
-                .font(.system(size: 9, weight: .medium, design: .monospaced))
-                .foregroundStyle(Color.green.opacity(0.85))
-                .padding(.horizontal, 4)
-                .padding(.vertical, 1)
-                .background(Color.black.opacity(0.55))
-                .cornerRadius(3)
-                .padding(4)
 
             VStack(spacing: 0) {
                 RTLTextView(
