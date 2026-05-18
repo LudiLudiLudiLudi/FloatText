@@ -25,6 +25,7 @@ final class FloatingPanel: NSPanel {
         self.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
         self.hidesOnDeactivate = false
         self.isReleasedWhenClosed = false
+        self.minSize = NSSize(width: 260, height: 180)
     }
 
     override var canBecomeKey: Bool { true }

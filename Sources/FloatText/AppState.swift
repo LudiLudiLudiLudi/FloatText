@@ -55,7 +55,7 @@ final class AppState: ObservableObject {
 
         self.fontSize = CGFloat(d.object(forKey: K.fontSize) as? Double ?? 18.0)
         self.textColorHex = d.string(forKey: K.textColorHex) ?? "#F2F2F2"
-        self.backgroundOpacity = d.object(forKey: K.bgOpacity) as? Double ?? 0.75
+        self.backgroundOpacity = d.object(forKey: K.bgOpacity) as? Double ?? 0.60
         self.alignment = TextAlignmentOption(rawValue: d.string(forKey: K.alignment) ?? "") ?? .right
         self.isRTL = d.object(forKey: K.isRTL) as? Bool ?? true
         self.alwaysOnTop = d.object(forKey: K.alwaysOnTop) as? Bool ?? true
