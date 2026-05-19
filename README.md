@@ -10,7 +10,7 @@ MVP. Local builds only — no signing, no notarization, no App Store. Runs on ma
 
 ## Screenshot
 
-_Screenshot coming soon._
+![FloatText floating panel](docs/screenshot.png)
 
 ## What FloatText is
 
