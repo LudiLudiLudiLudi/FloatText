@@ -100,7 +100,17 @@ final class AppState: ObservableObject {
         }
     }
 
-    private func persistWindowIDs() {
+    /// Append a new WindowState and persist the updated id list.
+    /// Called by WindowManager.newWindow().
+    func addWindow(_ win: WindowState) {
+        windows.append(win)
+        persistWindowIDs()
+    }
+
+    /// Re-write `ft.windows` to match the current `windows` array. Internal
+    /// because future commits (Close Window, Delete Window) will mutate the
+    /// list too.
+    func persistWindowIDs() {
         ud.set(windows.map { $0.id.uuidString }, forKey: K.windows)
     }
 

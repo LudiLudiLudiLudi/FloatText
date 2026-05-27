@@ -9,12 +9,14 @@ import Combine
 final class FloatingPanelController: NSObject, NSWindowDelegate, ObservableObject {
     let appState: AppState
     let windowState: WindowState
+    private weak var manager: WindowManager?
     private(set) var panel: FloatingPanel
     private var cancellables = Set<AnyCancellable>()
 
-    init(appState: AppState, windowState: WindowState) {
+    init(appState: AppState, windowState: WindowState, manager: WindowManager? = nil) {
         self.appState = appState
         self.windowState = windowState
+        self.manager = manager
         self.panel = FloatingPanel(contentRect: windowState.windowFrame)
         super.init()
         configure()
@@ -75,6 +77,14 @@ final class FloatingPanelController: NSObject, NSWindowDelegate, ObservableObjec
 
     nonisolated func windowDidMove(_ notification: Notification) {
         Task { @MainActor in self.captureFrame() }
+    }
+
+    /// Track which window is "front" so menu bar commands target the right
+    /// WindowState when there are multiple panels.
+    nonisolated func windowDidBecomeKey(_ notification: Notification) {
+        Task { @MainActor in
+            self.manager?.setActive(self.windowState.id)
+        }
     }
 
     private func captureFrame() {

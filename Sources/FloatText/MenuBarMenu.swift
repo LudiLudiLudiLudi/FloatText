@@ -1,24 +1,29 @@
 import SwiftUI
 import AppKit
 
-/// Menu bar contents. For Commit 1 the menu still acts on a single window —
-/// `appState.windows.first`. Future commits add New / Close / per-window
-/// targeting.
+/// Menu bar contents. Per-window items target the currently-active window
+/// (`windowManager.activeWindowState`); global items target AppState.
 struct MenuBarMenu: View {
     @EnvironmentObject var appState: AppState
-    @EnvironmentObject var controller: FloatingPanelController
+    @EnvironmentObject var windowManager: WindowManager
 
-    private var windowState: WindowState? { appState.windows.first }
+    /// The window currently targeted by per-window menu commands.
+    private var activeWindow: WindowState? { windowManager.activeWindowState }
 
     var body: some View {
-        Button(controller.panel.isVisible ? "Hide FloatText" : "Show FloatText") {
-            controller.toggleVisible()
+        Button(windowManager.anyVisible ? "Hide FloatText" : "Show FloatText") {
+            windowManager.toggleAll()
         }
         .keyboardShortcut("h", modifiers: [.command, .shift])
 
+        Button("New Window") {
+            windowManager.newWindow()
+        }
+        .keyboardShortcut("n", modifiers: .command)
+
         Divider()
 
-        if let win = windowState {
+        if let win = activeWindow {
             Toggle("Focus Mode (hide controls)", isOn: Binding(
                 get: { win.focusMode },
                 set: { win.focusMode = $0 }
@@ -28,7 +33,7 @@ struct MenuBarMenu: View {
 
         Toggle("Always on Top", isOn: $appState.alwaysOnTop)
 
-        if let win = windowState {
+        if let win = activeWindow {
             Toggle("Click-through Mode", isOn: Binding(
                 get: { win.clickThrough },
                 set: { win.clickThrough = $0 }
@@ -37,7 +42,7 @@ struct MenuBarMenu: View {
 
         Divider()
 
-        if let win = windowState {
+        if let win = activeWindow {
             Toggle("RTL", isOn: Binding(
                 get: { win.isRTL },
                 set: { win.isRTL = $0 }
