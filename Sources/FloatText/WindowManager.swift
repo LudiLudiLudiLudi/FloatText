@@ -83,15 +83,11 @@ final class WindowManager: ObservableObject {
     func showAll() { controllers.forEach { $0.show() } }
     func hideAll() { controllers.forEach { $0.hide() } }
 
-    /// Menu-bar Show/Hide target.
-    ///   * any visible            → hide all
-    ///   * none visible, some exist → show all (reveal hidden)
-    ///   * none exist at all      → create a fresh blank window so the user
-    ///                              isn't forced to discover "New Window"
-    func toggleOrCreate() {
-        if anyVisible {
-            hideAll()
-        } else if controllers.isEmpty {
+    /// 'Show All Windows' target. Always succeeds:
+    ///   * controllers.isEmpty → create one new blank panel
+    ///   * otherwise           → show every existing panel
+    func showAllOrCreate() {
+        if controllers.isEmpty {
             newWindow()
         } else {
             showAll()

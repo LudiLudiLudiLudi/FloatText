@@ -11,10 +11,15 @@ struct MenuBarMenu: View {
     private var activeWindow: WindowState? { windowManager.activeWindowState }
 
     var body: some View {
-        Button(windowManager.anyVisible ? "Hide FloatText" : "Show FloatText") {
-            windowManager.toggleOrCreate()
+        Button("Show All Windows") {
+            windowManager.showAllOrCreate()
         }
         .keyboardShortcut("h", modifiers: [.command, .shift])
+
+        Button("Hide All Windows") {
+            windowManager.hideAll()
+        }
+        .disabled(!windowManager.anyVisible)
 
         Button("New Window") {
             windowManager.newWindow()
