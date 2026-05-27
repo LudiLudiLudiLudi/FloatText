@@ -27,12 +27,16 @@ final class FloatingPanelController: NSObject, NSWindowDelegate, ObservableObjec
         let host = NSHostingView(
             rootView: OverlayView(
                 windowState: windowState,
-                onClose: { [weak self] in
+                onHide: { [weak self] in
                     guard let self = self else { return }
-                    self.manager?.closeWindow(id: self.windowState.id)
+                    self.manager?.hideWindow(id: self.windowState.id)
                 },
                 onNewWindow: { [weak self] in
                     self?.manager?.newWindow()
+                },
+                onDelete: { [weak self] in
+                    guard let self = self else { return }
+                    self.manager?.deleteWindow(id: self.windowState.id)
                 }
             )
         )

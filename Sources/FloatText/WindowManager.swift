@@ -61,16 +61,26 @@ final class WindowManager: ObservableObject {
         return c
     }
 
-    /// Close (non-destructive). Hides the panel, removes the controller from
-    /// the active list, and tells AppState to drop the id from `ft.windows`.
-    /// Per-window UserDefaults (`ft.window.<id>.*`) are LEFT IN PLACE so the
-    /// user's text is never lost by closing the panel.
-    func closeWindow(id: UUID) {
+    /// Hide one window (non-destructive). Just `orderOut`. Controller and
+    /// WindowState remain in the active set so 'Show All Windows' brings
+    /// the panel back with all state intact. UUID stays in `ft.windows` so
+    /// the panel reopens on next launch too.
+    func hideWindow(id: UUID) {
+        controllers.first { $0.windowState.id == id }?.hide()
+    }
+
+    /// Delete one window PERMANENTLY (destructive). orderOut, drop the
+    /// controller, drop the WindowState from AppState, remove the UUID
+    /// from `ft.windows`, AND purge every `ft.window.<id>.*` key.
+    ///
+    /// Callers are expected to have confirmed with the user first
+    /// (NSAlert in the in-window trash button and the menu item).
+    func deleteWindow(id: UUID) {
         guard let idx = controllers.firstIndex(where: { $0.windowState.id == id }) else { return }
         let c = controllers[idx]
         c.hide()
         controllers.remove(at: idx)
-        appState.removeWindow(id: id, keepPersistedState: true)
+        appState.removeWindow(id: id, keepPersistedState: false) // purge per-window keys
         if activeWindowID == id {
             activeWindowID = controllers.first?.windowState.id
         }

@@ -26,12 +26,19 @@ struct MenuBarMenu: View {
         }
         .keyboardShortcut("n", modifiers: .command)
 
-        Button("Close Window") {
+        Button("Hide Current Window") {
             if let id = windowManager.activeWindowID {
-                windowManager.closeWindow(id: id)
+                windowManager.hideWindow(id: id)
             }
         }
         .keyboardShortcut("w", modifiers: .command)
+        .disabled(windowManager.activeWindowID == nil)
+
+        Button("Delete Current Window…") {
+            if let id = windowManager.activeWindowID {
+                confirmAndDeleteWindow(id: id)
+            }
+        }
         .disabled(windowManager.activeWindowID == nil)
 
         Divider()
@@ -98,5 +105,22 @@ struct MenuBarMenu: View {
             NSApp.terminate(nil)
         }
         .keyboardShortcut("q", modifiers: .command)
+    }
+
+    /// Same confirmation copy as the in-window trash button. Belt-and-suspenders:
+    /// the action is explicitly labelled 'Delete...' AND requires confirmation.
+    private func confirmAndDeleteWindow(id: UUID) {
+        let alert = NSAlert()
+        alert.messageText = "Delete this window?"
+        alert.informativeText = "The window's text and settings will be permanently removed. Other windows are unaffected."
+        alert.alertStyle = .warning
+        alert.addButton(withTitle: "Cancel")
+        alert.addButton(withTitle: "Delete")
+        if #available(macOS 11.0, *) {
+            alert.buttons.last?.hasDestructiveAction = true
+        }
+        if alert.runModal() == .alertSecondButtonReturn {
+            windowManager.deleteWindow(id: id)
+        }
     }
 }
