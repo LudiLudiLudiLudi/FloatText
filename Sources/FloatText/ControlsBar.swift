@@ -1,18 +1,16 @@
 import SwiftUI
 import AppKit
 
-/// Two-row compact bar that fits inside a ~260px-wide panel.
-/// Row 1: font size, color, alignment, RTL, focus toggle.
-/// Row 2: opacity slider (full width).
+/// Bottom formatting / reading bar. Two rows, compact enough to fit in a
+/// ~260 px-wide panel:
+///   Row 1: A-, A+, color, alignment, RTL, focus toggle.
+///   Row 2: opacity slider.
+///
+/// Window-management controls (`+` new window, `×` close window) deliberately
+/// live OUTSIDE this view — see the top header in `OverlayView`. That keeps
+/// them reachable even when Focus Mode hides this bar.
 struct ControlsBar: View {
     @ObservedObject var windowState: WindowState
-    /// Invoked when the user taps the × button. Non-destructive: hides the
-    /// panel and removes it from the active set; per-window UserDefaults
-    /// stay in place so text is not lost.
-    var onClose: () -> Void = {}
-    /// Invoked when the user taps the + button. Creates a new blank
-    /// FloatText panel via WindowManager.newWindow().
-    var onNewWindow: () -> Void = {}
 
     var body: some View {
         VStack(spacing: 4) {
@@ -62,16 +60,6 @@ struct ControlsBar: View {
                     Image(systemName: windowState.focusMode ? "eye" : "eye.slash")
                 }
                 .help("Toggle Focus Mode (hide controls)")
-
-                Button(action: onNewWindow) {
-                    Image(systemName: "plus")
-                }
-                .help("New Window")
-
-                Button(action: onClose) {
-                    Image(systemName: "xmark")
-                }
-                .help("Close this window (text is preserved)")
             }
 
             HStack(spacing: 6) {

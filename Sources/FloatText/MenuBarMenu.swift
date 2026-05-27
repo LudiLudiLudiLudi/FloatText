@@ -53,6 +53,16 @@ struct MenuBarMenu: View {
             ))
         }
 
+        // Rescue path: surfaced only when some window is in click-through.
+        // Guarantees a no-trap-state exit in multi-window setups where the
+        // active window's toggle may target a different panel than the one
+        // that's actually stuck.
+        if windowManager.anyClickThrough {
+            Button("Disable Click-through (All Windows)") {
+                windowManager.disableClickThroughOnAll()
+            }
+        }
+
         Divider()
 
         if let win = activeWindow {

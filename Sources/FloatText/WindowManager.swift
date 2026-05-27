@@ -83,6 +83,25 @@ final class WindowManager: ObservableObject {
     func showAll() { controllers.forEach { $0.show() } }
     func hideAll() { controllers.forEach { $0.hide() } }
 
+    // MARK: Click-through rescue (anti-trap-state)
+
+    /// True if any window currently has click-through on. Drives the
+    /// 'Disable Click-through (All Windows)' menu item.
+    var anyClickThrough: Bool {
+        appState.windows.contains { $0.clickThrough }
+    }
+
+    /// Guarantee against a trap state in multi-window setups: if Panel A
+    /// has click-through on and the user clicks Panel B (which becomes
+    /// active), the per-window menu toggle now targets B, not A — A would
+    /// be permanently passive with no menu-bar route to disable it. This
+    /// disables click-through on every window at once.
+    func disableClickThroughOnAll() {
+        for win in appState.windows where win.clickThrough {
+            win.clickThrough = false
+        }
+    }
+
     /// 'Show All Windows' target. Always succeeds:
     ///   * controllers.isEmpty → create one new blank panel
     ///   * otherwise           → show every existing panel

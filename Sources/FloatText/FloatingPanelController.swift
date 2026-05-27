@@ -75,7 +75,30 @@ final class FloatingPanelController: NSObject, NSWindowDelegate, ObservableObjec
     }
 
     private func applyClickThrough() {
-        panel.ignoresMouseEvents = windowState.clickThrough
+        let on = windowState.clickThrough
+        panel.ignoresMouseEvents = on
+        if !on {
+            // Restore interactivity. Two steps:
+            //   1. Make the panel key so it accepts events again.
+            //   2. Put first responder back on the NSTextView so the cursor
+            //      is live and the user can type immediately. Without this
+            //      the panel "looks normal" after disable but keystrokes go
+            //      nowhere until the user manually clicks the text — the
+            //      symptom that made click-through feel unreliable.
+            panel.makeKeyAndOrderFront(nil)
+            if let textView = FloatingPanelController.findTextView(in: panel.contentView) {
+                panel.makeFirstResponder(textView)
+            }
+        }
+    }
+
+    private static func findTextView(in view: NSView?) -> NSTextView? {
+        guard let view = view else { return nil }
+        if let tv = view as? NSTextView { return tv }
+        for sub in view.subviews {
+            if let found = findTextView(in: sub) { return found }
+        }
+        return nil
     }
 
     // MARK: NSWindowDelegate
