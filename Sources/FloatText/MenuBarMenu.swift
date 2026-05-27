@@ -41,6 +41,13 @@ struct MenuBarMenu: View {
         }
         .disabled(windowManager.activeWindowID == nil)
 
+        Button("Clear Current Note…") {
+            if let win = windowManager.activeWindowState {
+                confirmAndClearNote(win)
+            }
+        }
+        .disabled(windowManager.activeWindowState == nil)
+
         Divider()
 
         if let win = activeWindow {
@@ -121,6 +128,23 @@ struct MenuBarMenu: View {
         }
         if alert.runModal() == .alertSecondButtonReturn {
             windowManager.deleteWindow(id: id)
+        }
+    }
+
+    /// Wipes only the text of the active window. Window itself, frame, color,
+    /// opacity, alignment, RTL, etc. all remain unchanged.
+    private func confirmAndClearNote(_ win: WindowState) {
+        let alert = NSAlert()
+        alert.messageText = "Clear this note?"
+        alert.informativeText = "The text in this window will be removed. The window itself will remain."
+        alert.alertStyle = .warning
+        alert.addButton(withTitle: "Cancel")
+        alert.addButton(withTitle: "Clear")
+        if #available(macOS 11.0, *) {
+            alert.buttons.last?.hasDestructiveAction = true
+        }
+        if alert.runModal() == .alertSecondButtonReturn {
+            win.text = ""
         }
     }
 }

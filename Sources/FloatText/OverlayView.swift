@@ -2,10 +2,14 @@ import SwiftUI
 import AppKit
 
 /// SwiftUI root for one floating panel. Layout (top to bottom):
-///   1. Top header — window management:
-///        [eye.slash] Hide        — non-destructive: orderOut only
-///        [plus]      New Window  — creates a fresh blank panel
-///        [trash]     Delete      — destructive, requires NSAlert confirmation
+///   1. Top header — window management. Left/right split so the destructive
+///      action is visually isolated:
+///        LEFT (destructive):
+///          [trash]      Delete    — purge window + per-window UD, NSAlert confirm
+///        RIGHT (safer, frequent):
+///          [plus]       New Window
+///          [eye.slash]  Hide      — orderOut, fully reversible
+///          [eraser.fill] Clear    — wipe text only, window stays, NSAlert confirm
 ///      Visible when !clickThrough. Stays visible in Focus Mode so
 ///      management remains reachable.
 ///   2. RTLTextView — fills remaining space.
@@ -68,24 +72,33 @@ struct OverlayView: View {
     }
 
     private var topHeader: some View {
-        HStack(spacing: 8) {
-            Spacer(minLength: 0)
-
-            Button(action: onHide) {
-                Image(systemName: "eye.slash")
-            }
-            .help("Hide this window (text is preserved; reopen via Show All Windows)")
-
-            Button(action: onNewWindow) {
-                Image(systemName: "plus")
-            }
-            .help("New Window")
-
+        HStack(spacing: 0) {
+            // LEFT cluster: destructive Delete, visually isolated.
             Button(action: confirmDelete) {
                 Image(systemName: "trash")
             }
             .help("Delete this window (text will be permanently removed)")
             .foregroundStyle(.red.opacity(0.85))
+
+            Spacer(minLength: 0)
+
+            // RIGHT cluster: safer / more frequent actions.
+            HStack(spacing: 8) {
+                Button(action: onNewWindow) {
+                    Image(systemName: "plus")
+                }
+                .help("New Window")
+
+                Button(action: onHide) {
+                    Image(systemName: "eye.slash")
+                }
+                .help("Hide this window (text is preserved; reopen via Show All Windows)")
+
+                Button(action: confirmClear) {
+                    Image(systemName: "eraser.fill")
+                }
+                .help("Clear the text in this note (window itself stays)")
+            }
         }
         .buttonStyle(.borderless)
         .controlSize(.small)
@@ -99,15 +112,28 @@ struct OverlayView: View {
         alert.messageText = "Delete this window?"
         alert.informativeText = "The window's text and settings will be permanently removed. Other windows are unaffected."
         alert.alertStyle = .warning
-        // Cancel first → default Return cancels. Delete is a deliberate second click.
-        alert.addButton(withTitle: "Cancel")
+        alert.addButton(withTitle: "Cancel") // first → Return cancels
         alert.addButton(withTitle: "Delete")
         if #available(macOS 11.0, *) {
             alert.buttons.last?.hasDestructiveAction = true
         }
-        let response = alert.runModal()
-        if response == .alertSecondButtonReturn {
+        if alert.runModal() == .alertSecondButtonReturn {
             onDelete()
+        }
+    }
+
+    private func confirmClear() {
+        let alert = NSAlert()
+        alert.messageText = "Clear this note?"
+        alert.informativeText = "The text in this window will be removed. The window itself will remain."
+        alert.alertStyle = .warning
+        alert.addButton(withTitle: "Cancel") // first → Return cancels
+        alert.addButton(withTitle: "Clear")
+        if #available(macOS 11.0, *) {
+            alert.buttons.last?.hasDestructiveAction = true
+        }
+        if alert.runModal() == .alertSecondButtonReturn {
+            windowState.text = ""
         }
     }
 }
