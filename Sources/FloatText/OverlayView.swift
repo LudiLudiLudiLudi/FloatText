@@ -5,6 +5,9 @@ import AppKit
 /// hover; everything else lives in the WindowState the controller passes in.
 struct OverlayView: View {
     @ObservedObject var windowState: WindowState
+    /// Invoked by the in-window close (×) button. Wired by
+    /// FloatingPanelController to WindowManager.closeWindow.
+    var onClose: () -> Void = {}
     @State private var isHovering = false
 
     /// Controls policy: visible when click-through is off AND
@@ -39,7 +42,7 @@ struct OverlayView: View {
                 .padding(.top, 8)
 
                 if showControls {
-                    ControlsBar(windowState: windowState)
+                    ControlsBar(windowState: windowState, onClose: onClose)
                         .transition(.move(edge: .bottom).combined(with: .opacity))
                 }
             }

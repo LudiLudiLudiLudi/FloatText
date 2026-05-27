@@ -6,6 +6,10 @@ import AppKit
 /// Row 2: opacity slider (full width).
 struct ControlsBar: View {
     @ObservedObject var windowState: WindowState
+    /// Invoked when the user taps the × button. Non-destructive: hides the
+    /// panel and removes it from the active set; per-window UserDefaults
+    /// stay in place so text is not lost.
+    var onClose: () -> Void = {}
 
     var body: some View {
         VStack(spacing: 4) {
@@ -55,6 +59,11 @@ struct ControlsBar: View {
                     Image(systemName: windowState.focusMode ? "eye" : "eye.slash")
                 }
                 .help("Toggle Focus Mode (hide controls)")
+
+                Button(action: onClose) {
+                    Image(systemName: "xmark")
+                }
+                .help("Close this window (text is preserved)")
             }
 
             HStack(spacing: 6) {

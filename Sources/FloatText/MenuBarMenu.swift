@@ -21,6 +21,14 @@ struct MenuBarMenu: View {
         }
         .keyboardShortcut("n", modifiers: .command)
 
+        Button("Close Window") {
+            if let id = windowManager.activeWindowID {
+                windowManager.closeWindow(id: id)
+            }
+        }
+        .keyboardShortcut("w", modifiers: .command)
+        .disabled(windowManager.activeWindowID == nil)
+
         Divider()
 
         if let win = activeWindow {

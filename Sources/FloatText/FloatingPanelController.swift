@@ -25,7 +25,13 @@ final class FloatingPanelController: NSObject, NSWindowDelegate, ObservableObjec
 
     private func configure() {
         let host = NSHostingView(
-            rootView: OverlayView(windowState: windowState)
+            rootView: OverlayView(
+                windowState: windowState,
+                onClose: { [weak self] in
+                    guard let self = self else { return }
+                    self.manager?.closeWindow(id: self.windowState.id)
+                }
+            )
         )
         // NSWindow auto-sets autoresizingMask + frame on contentView when
         // translatesAutoresizingMaskIntoConstraints is left at its default (true).

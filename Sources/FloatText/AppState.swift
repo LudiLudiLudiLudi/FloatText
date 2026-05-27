@@ -107,6 +107,29 @@ final class AppState: ObservableObject {
         persistWindowIDs()
     }
 
+    /// Remove a window from the active set. Non-destructive by default:
+    /// updates the in-memory `windows` array and the persisted `ft.windows`
+    /// list so the window does NOT auto-reopen on next launch, but the
+    /// per-window keys (`ft.window.<id>.text`, etc.) are LEFT IN PLACE.
+    ///
+    /// This is the "Close Window" semantic. A future destructive
+    /// "Delete Window" would pass `keepPersistedState: false` and remove
+    /// the per-window keys too.
+    func removeWindow(id: UUID, keepPersistedState: Bool = true) {
+        windows.removeAll { $0.id == id }
+        persistWindowIDs()
+
+        if !keepPersistedState {
+            let prefix = "ft.window.\(id.uuidString)"
+            let suffixes = [".text", ".fontSize", ".color", ".opacity",
+                            ".alignment", ".isRTL", ".clickThrough",
+                            ".focusMode", ".frame"]
+            for suffix in suffixes {
+                ud.removeObject(forKey: prefix + suffix)
+            }
+        }
+    }
+
     /// Re-write `ft.windows` to match the current `windows` array. Internal
     /// because future commits (Close Window, Delete Window) will mutate the
     /// list too.

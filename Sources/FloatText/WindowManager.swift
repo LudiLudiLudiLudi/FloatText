@@ -61,6 +61,21 @@ final class WindowManager: ObservableObject {
         return c
     }
 
+    /// Close (non-destructive). Hides the panel, removes the controller from
+    /// the active list, and tells AppState to drop the id from `ft.windows`.
+    /// Per-window UserDefaults (`ft.window.<id>.*`) are LEFT IN PLACE so the
+    /// user's text is never lost by closing the panel.
+    func closeWindow(id: UUID) {
+        guard let idx = controllers.firstIndex(where: { $0.windowState.id == id }) else { return }
+        let c = controllers[idx]
+        c.hide()
+        controllers.remove(at: idx)
+        appState.removeWindow(id: id, keepPersistedState: true)
+        if activeWindowID == id {
+            activeWindowID = controllers.first?.windowState.id
+        }
+    }
+
     // MARK: Visibility (acts on all windows for now)
 
     var anyVisible: Bool { controllers.contains { $0.panel.isVisible } }
