@@ -9,7 +9,7 @@ struct FloatTextApp: App {
         MenuBarExtra("FloatText", systemImage: "text.bubble") {
             MenuBarMenu()
                 .environmentObject(appDelegate.state)
-                .environmentObject(appDelegate.panelController)
+                .environmentObject(appDelegate.primaryController)
         }
         .menuBarExtraStyle(.menu)
     }
@@ -18,15 +18,22 @@ struct FloatTextApp: App {
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
     let state = AppState()
-    lazy var panelController = FloatingPanelController(state: state)
+    /// First (and currently only) controller. Future commits introduce a
+    /// WindowManager that owns the full collection.
+    lazy var primaryController: FloatingPanelController = {
+        guard let win = state.windows.first else {
+            fatalError("AppState should always seed at least one WindowState")
+        }
+        return FloatingPanelController(appState: state, windowState: win)
+    }()
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         applyActivationPolicy()
-        panelController.show()
+        primaryController.show()
     }
 
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
-        panelController.show()
+        primaryController.show()
         return true
     }
 

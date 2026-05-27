@@ -1,43 +1,45 @@
 import SwiftUI
 import AppKit
 
+/// SwiftUI root for one floating panel. Owns no state of its own beyond
+/// hover; everything else lives in the WindowState the controller passes in.
 struct OverlayView: View {
-    @EnvironmentObject var state: AppState
+    @ObservedObject var windowState: WindowState
     @State private var isHovering = false
 
     /// Controls policy: visible when click-through is off AND
     /// (focus mode is off OR the user is hovering the panel).
     /// They are never permanently hidden — menu bar also toggles focus.
     private var showControls: Bool {
-        if state.clickThrough { return false }
-        if !state.focusMode { return true }
+        if windowState.clickThrough { return false }
+        if !windowState.focusMode { return true }
         return isHovering
     }
 
     var body: some View {
         ZStack {
-            // Single tint layer driven by state.backgroundOpacity.
+            // Single tint layer driven by windowState.backgroundOpacity.
             // A bare Color, not NSVisualEffectView — the slider must control
             // the real window transparency, not a darkness layer over a
             // frosted-glass material.
             Color.black
-                .opacity(state.backgroundOpacity)
+                .opacity(windowState.backgroundOpacity)
                 .ignoresSafeArea()
 
             VStack(spacing: 0) {
                 RTLTextView(
-                    text: $state.text,
-                    fontSize: state.fontSize,
-                    textColor: state.textColor,
-                    alignment: state.alignment.nsTextAlignment,
-                    isRTL: state.isRTL
+                    text: $windowState.text,
+                    fontSize: windowState.fontSize,
+                    textColor: windowState.textColor,
+                    alignment: windowState.alignment.nsTextAlignment,
+                    isRTL: windowState.isRTL
                 )
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .padding(.horizontal, 4)
                 .padding(.top, 8)
 
                 if showControls {
-                    ControlsBar()
+                    ControlsBar(windowState: windowState)
                         .transition(.move(edge: .bottom).combined(with: .opacity))
                 }
             }

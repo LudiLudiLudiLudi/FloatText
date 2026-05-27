@@ -1,9 +1,14 @@
 import SwiftUI
 import AppKit
 
+/// Menu bar contents. For Commit 1 the menu still acts on a single window —
+/// `appState.windows.first`. Future commits add New / Close / per-window
+/// targeting.
 struct MenuBarMenu: View {
-    @EnvironmentObject var state: AppState
+    @EnvironmentObject var appState: AppState
     @EnvironmentObject var controller: FloatingPanelController
+
+    private var windowState: WindowState? { appState.windows.first }
 
     var body: some View {
         Button(controller.panel.isVisible ? "Hide FloatText" : "Show FloatText") {
@@ -13,22 +18,39 @@ struct MenuBarMenu: View {
 
         Divider()
 
-        Toggle("Focus Mode (hide controls)", isOn: $state.focusMode)
+        if let win = windowState {
+            Toggle("Focus Mode (hide controls)", isOn: Binding(
+                get: { win.focusMode },
+                set: { win.focusMode = $0 }
+            ))
             .keyboardShortcut("f", modifiers: [.command, .shift])
-        Toggle("Always on Top", isOn: $state.alwaysOnTop)
-        Toggle("Click-through Mode", isOn: $state.clickThrough)
+        }
+
+        Toggle("Always on Top", isOn: $appState.alwaysOnTop)
+
+        if let win = windowState {
+            Toggle("Click-through Mode", isOn: Binding(
+                get: { win.clickThrough },
+                set: { win.clickThrough = $0 }
+            ))
+        }
 
         Divider()
 
-        Toggle("RTL", isOn: $state.isRTL)
+        if let win = windowState {
+            Toggle("RTL", isOn: Binding(
+                get: { win.isRTL },
+                set: { win.isRTL = $0 }
+            ))
             .keyboardShortcut("r", modifiers: [.command, .shift])
+        }
 
         Divider()
 
         Toggle("Hide Dock Icon", isOn: Binding(
-            get: { state.hideDockIcon },
+            get: { appState.hideDockIcon },
             set: { newValue in
-                state.hideDockIcon = newValue
+                appState.hideDockIcon = newValue
                 NSApp.setActivationPolicy(newValue ? .accessory : .regular)
                 if !newValue { NSApp.activate(ignoringOtherApps: true) }
             }
@@ -38,7 +60,7 @@ struct MenuBarMenu: View {
             get: { LaunchAtLogin.isEnabled },
             set: { newValue in
                 LaunchAtLogin.set(enabled: newValue)
-                state.launchAtLogin = LaunchAtLogin.isEnabled
+                appState.launchAtLogin = LaunchAtLogin.isEnabled
             }
         ))
 

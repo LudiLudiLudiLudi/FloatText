@@ -14,115 +14,120 @@ enum TextAlignmentOption: String, CaseIterable, Codable {
     }
 }
 
+/// App-level state.
+///
+/// Holds *global* settings (alwaysOnTop, hideDockIcon, launchAtLogin) and
+/// the list of windows. Per-window state lives in `WindowState`.
+///
+/// Commit 1 of the multi-window refactor: only one window is created in
+/// practice. The collection structure is in place but unused beyond
+/// `windows.first`. Subsequent commits add real multi-window plumbing.
 @MainActor
 final class AppState: ObservableObject {
-    // Editor content
-    @Published var text: String { didSet { scheduleTextPersist() } }
-
-    // Typography & color
-    @Published var fontSize: CGFloat { didSet { ud.set(Double(fontSize), forKey: K.fontSize) } }
-    @Published var textColorHex: String { didSet { ud.set(textColorHex, forKey: K.textColorHex) } }
-
-    // Window appearance
-    @Published var backgroundOpacity: Double { didSet { ud.set(backgroundOpacity, forKey: K.bgOpacity) } }
-
-    // Text behavior
-    @Published var alignment: TextAlignmentOption { didSet { ud.set(alignment.rawValue, forKey: K.alignment) } }
-    @Published var isRTL: Bool { didSet { ud.set(isRTL, forKey: K.isRTL) } }
-
-    // Window behavior
+    // MARK: Global properties
     @Published var alwaysOnTop: Bool { didSet { ud.set(alwaysOnTop, forKey: K.alwaysOnTop) } }
-    @Published var clickThrough: Bool { didSet { ud.set(clickThrough, forKey: K.clickThrough) } }
-    @Published var focusMode: Bool { didSet { ud.set(focusMode, forKey: K.focusMode) } }
     @Published var hideDockIcon: Bool { didSet { ud.set(hideDockIcon, forKey: K.hideDockIcon) } }
     @Published var launchAtLogin: Bool { didSet { ud.set(launchAtLogin, forKey: K.launchAtLogin) } }
 
-    // Window frame
-    @Published var windowFrame: NSRect { didSet { persistFrame() } }
+    // MARK: Windows
+    @Published var windows: [WindowState] = []
 
     private let ud = UserDefaults.standard
-    private var textPersistTask: Task<Void, Never>?
+
+    // MARK: Init
 
     init() {
         let d = UserDefaults.standard
-
-        // Text — seed on first launch if missing
-        if let stored = d.string(forKey: K.text) {
-            self.text = stored
-        } else {
-            self.text = AppState.seedText
-        }
-
-        self.fontSize = CGFloat(d.object(forKey: K.fontSize) as? Double ?? 18.0)
-        self.textColorHex = d.string(forKey: K.textColorHex) ?? "#F2F2F2"
-        self.backgroundOpacity = d.object(forKey: K.bgOpacity) as? Double ?? 0.60
-        self.alignment = TextAlignmentOption(rawValue: d.string(forKey: K.alignment) ?? "") ?? .right
-        self.isRTL = d.object(forKey: K.isRTL) as? Bool ?? true
         self.alwaysOnTop = d.object(forKey: K.alwaysOnTop) as? Bool ?? true
-        self.clickThrough = d.object(forKey: K.clickThrough) as? Bool ?? false
-        self.focusMode = d.object(forKey: K.focusMode) as? Bool ?? false
         self.hideDockIcon = d.object(forKey: K.hideDockIcon) as? Bool ?? false
         self.launchAtLogin = d.object(forKey: K.launchAtLogin) as? Bool ?? false
 
-        if let frameStr = d.string(forKey: K.windowFrame) {
-            self.windowFrame = NSRectFromString(frameStr)
-        } else {
-            self.windowFrame = NSRect(x: 200, y: 200, width: 460, height: 520)
+        migrateLegacyKeysIfNeeded()
+        loadWindows()
+    }
+
+    // MARK: Migration
+
+    /// One-time, non-destructive migration from the v1 flat-key schema (`ft.text`,
+    /// `ft.fontSize`, etc.) to the v2 per-window schema (`ft.window.<uuid>.*`).
+    ///
+    /// Legacy keys are NOT deleted — running an older FloatText binary after this
+    /// runs will still see its previous state. A later cleanup release can
+    /// remove them once we're sure no one is rolling back.
+    private func migrateLegacyKeysIfNeeded() {
+        if ud.bool(forKey: K.migrationV2Completed) { return }
+
+        let legacy = LegacyKeys.self
+        let hasLegacy = ud.object(forKey: legacy.text) != nil
+            || ud.object(forKey: legacy.fontSize) != nil
+            || ud.object(forKey: legacy.windowFrame) != nil
+
+        if hasLegacy {
+            let id = UUID()
+            let prefix = "ft.window.\(id.uuidString)"
+
+            // Copy each legacy key to the new schema (only if present).
+            if let v = ud.string(forKey: legacy.text)         { ud.set(v, forKey: "\(prefix).text") }
+            if let v = ud.object(forKey: legacy.fontSize)     { ud.set(v, forKey: "\(prefix).fontSize") }
+            if let v = ud.string(forKey: legacy.textColorHex) { ud.set(v, forKey: "\(prefix).color") }
+            if let v = ud.object(forKey: legacy.bgOpacity)    { ud.set(v, forKey: "\(prefix).opacity") }
+            if let v = ud.string(forKey: legacy.alignment)    { ud.set(v, forKey: "\(prefix).alignment") }
+            if let v = ud.object(forKey: legacy.isRTL)        { ud.set(v, forKey: "\(prefix).isRTL") }
+            if let v = ud.object(forKey: legacy.clickThrough) { ud.set(v, forKey: "\(prefix).clickThrough") }
+            if let v = ud.object(forKey: legacy.focusMode)    { ud.set(v, forKey: "\(prefix).focusMode") }
+            if let v = ud.string(forKey: legacy.windowFrame)  { ud.set(v, forKey: "\(prefix).frame") }
+
+            ud.set([id.uuidString], forKey: K.windows)
+            // Legacy keys intentionally NOT removed.
+        }
+
+        ud.set(true, forKey: K.migrationV2Completed)
+    }
+
+    // MARK: Window loading
+
+    private func loadWindows() {
+        let ids = (ud.array(forKey: K.windows) as? [String] ?? []).compactMap { UUID(uuidString: $0) }
+        for id in ids {
+            windows.append(WindowState(id: id))
+        }
+        // Seed exactly one default window if nothing exists yet (fresh install
+        // or a UserDefaults purge between runs).
+        if windows.isEmpty {
+            let seeded = WindowState(id: UUID(), useSeedText: true)
+            windows.append(seeded)
+            persistWindowIDs()
         }
     }
 
-    var textColor: NSColor {
-        NSColor(hex: textColorHex) ?? .white
+    private func persistWindowIDs() {
+        ud.set(windows.map { $0.id.uuidString }, forKey: K.windows)
     }
 
-    private func scheduleTextPersist() {
-        textPersistTask?.cancel()
-        textPersistTask = Task { [text] in
-            try? await Task.sleep(nanoseconds: 500_000_000)
-            if Task.isCancelled { return }
-            await MainActor.run {
-                UserDefaults.standard.set(text, forKey: K.text)
-            }
-        }
-    }
-
-    private func persistFrame() {
-        ud.set(NSStringFromRect(windowFrame), forKey: K.windowFrame)
-    }
+    // MARK: Keys
 
     enum K {
+        static let alwaysOnTop = "ft.alwaysOnTop"
+        static let hideDockIcon = "ft.hideDockIcon"
+        static let launchAtLogin = "ft.launchAtLogin"
+        static let windows = "ft.windows"
+        static let migrationV2Completed = "ft.migration.v2.completed"
+    }
+
+    private enum LegacyKeys {
         static let text = "ft.text"
         static let fontSize = "ft.fontSize"
         static let textColorHex = "ft.textColorHex"
         static let bgOpacity = "ft.bgOpacity"
         static let alignment = "ft.alignment"
         static let isRTL = "ft.isRTL"
-        static let alwaysOnTop = "ft.alwaysOnTop"
         static let clickThrough = "ft.clickThrough"
         static let focusMode = "ft.focusMode"
-        static let hideDockIcon = "ft.hideDockIcon"
-        static let launchAtLogin = "ft.launchAtLogin"
         static let windowFrame = "ft.windowFrame"
     }
-
-    static let seedText = """
-    פתיחה
-    • שלום, תודה שהצטרפת. נדבר היום על …
-
-    נקודות עיקריות
-    • …
-    • …
-    • …
-
-    שאלות המשך
-    • …
-    • …
-
-    תזכורת לסיום
-    • לסכם את ההסכמות
-    • לסגור על צעד הבא
-    """
 }
+
+// MARK: - NSColor hex helpers (used by WindowState too)
 
 extension NSColor {
     convenience init?(hex: String) {

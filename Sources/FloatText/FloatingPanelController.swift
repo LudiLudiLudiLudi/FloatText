@@ -2,22 +2,29 @@ import AppKit
 import SwiftUI
 import Combine
 
+/// Owns one floating panel + its hosting SwiftUI tree. Per-window properties
+/// (text, colors, opacity, click-through, focus mode, frame) come from
+/// WindowState; global properties (alwaysOnTop) come from AppState.
 @MainActor
 final class FloatingPanelController: NSObject, NSWindowDelegate, ObservableObject {
-    let state: AppState
+    let appState: AppState
+    let windowState: WindowState
     private(set) var panel: FloatingPanel
     private var cancellables = Set<AnyCancellable>()
 
-    init(state: AppState) {
-        self.state = state
-        self.panel = FloatingPanel(contentRect: state.windowFrame)
+    init(appState: AppState, windowState: WindowState) {
+        self.appState = appState
+        self.windowState = windowState
+        self.panel = FloatingPanel(contentRect: windowState.windowFrame)
         super.init()
         configure()
         observeState()
     }
 
     private func configure() {
-        let host = NSHostingView(rootView: OverlayView().environmentObject(state))
+        let host = NSHostingView(
+            rootView: OverlayView(windowState: windowState)
+        )
         // NSWindow auto-sets autoresizingMask + frame on contentView when
         // translatesAutoresizingMaskIntoConstraints is left at its default (true).
         // Do NOT set it to false here without adding replacement constraints —
@@ -25,16 +32,16 @@ final class FloatingPanelController: NSObject, NSWindowDelegate, ObservableObjec
         // uses a stale layout, so clicks fall into dead zones.
         panel.contentView = host
         panel.delegate = self
-        panel.setFrame(state.windowFrame, display: false)
+        panel.setFrame(windowState.windowFrame, display: false)
         applyAlwaysOnTop()
         applyClickThrough()
     }
 
     private func observeState() {
-        state.$alwaysOnTop
+        appState.$alwaysOnTop
             .sink { [weak self] _ in self?.applyAlwaysOnTop() }
             .store(in: &cancellables)
-        state.$clickThrough
+        windowState.$clickThrough
             .sink { [weak self] _ in self?.applyClickThrough() }
             .store(in: &cancellables)
     }
@@ -53,11 +60,11 @@ final class FloatingPanelController: NSObject, NSWindowDelegate, ObservableObjec
     }
 
     private func applyAlwaysOnTop() {
-        panel.level = state.alwaysOnTop ? .floating : .normal
+        panel.level = appState.alwaysOnTop ? .floating : .normal
     }
 
     private func applyClickThrough() {
-        panel.ignoresMouseEvents = state.clickThrough
+        panel.ignoresMouseEvents = windowState.clickThrough
     }
 
     // MARK: NSWindowDelegate
@@ -71,6 +78,6 @@ final class FloatingPanelController: NSObject, NSWindowDelegate, ObservableObjec
     }
 
     private func captureFrame() {
-        state.windowFrame = panel.frame
+        windowState.windowFrame = panel.frame
     }
 }
