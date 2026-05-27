@@ -12,7 +12,7 @@ struct MenuBarMenu: View {
 
     var body: some View {
         Button(windowManager.anyVisible ? "Hide FloatText" : "Show FloatText") {
-            windowManager.toggleAll()
+            windowManager.toggleOrCreate()
         }
         .keyboardShortcut("h", modifiers: [.command, .shift])
 

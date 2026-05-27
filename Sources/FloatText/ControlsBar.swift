@@ -10,6 +10,9 @@ struct ControlsBar: View {
     /// panel and removes it from the active set; per-window UserDefaults
     /// stay in place so text is not lost.
     var onClose: () -> Void = {}
+    /// Invoked when the user taps the + button. Creates a new blank
+    /// FloatText panel via WindowManager.newWindow().
+    var onNewWindow: () -> Void = {}
 
     var body: some View {
         VStack(spacing: 4) {
@@ -59,6 +62,11 @@ struct ControlsBar: View {
                     Image(systemName: windowState.focusMode ? "eye" : "eye.slash")
                 }
                 .help("Toggle Focus Mode (hide controls)")
+
+                Button(action: onNewWindow) {
+                    Image(systemName: "plus")
+                }
+                .help("New Window")
 
                 Button(action: onClose) {
                     Image(systemName: "xmark")

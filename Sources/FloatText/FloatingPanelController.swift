@@ -30,6 +30,9 @@ final class FloatingPanelController: NSObject, NSWindowDelegate, ObservableObjec
                 onClose: { [weak self] in
                     guard let self = self else { return }
                     self.manager?.closeWindow(id: self.windowState.id)
+                },
+                onNewWindow: { [weak self] in
+                    self?.manager?.newWindow()
                 }
             )
         )
