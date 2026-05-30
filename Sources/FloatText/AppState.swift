@@ -56,10 +56,11 @@ final class AppState: ObservableObject {
         // Re-instantiated after the v3 migration writes ft.panel.* keys.
         self.panel = PanelState()
 
-        migrateLegacyKeysIfNeeded() // v1 → v2 (existing)
-        loadWindows()               // populates windows[] from v2 keys
-        migrateLegacyToV3IfNeeded() // v2 → v3, dormant; uses windows[] as source
-        loadV3State()               // populate panel / notes / activeNoteID from v3 keys
+        migrateLegacyKeysIfNeeded()      // v1 → v2 (existing)
+        loadWindows()                    // populates windows[] from v2 keys
+        migrateLegacyToV3IfNeeded()      // v2 → v3, dormant snapshot (Commit 1)
+        performV3TakeoverIfNeeded()      // v2 → v3 refresh on first tabbed UI launch (Commit 2)
+        loadV3State()                    // populate panel / notes / activeNoteID from v3 keys
     }
 
     // MARK: Migration
@@ -213,6 +214,130 @@ final class AppState: ObservableObject {
         ud.set(true, forKey: K.migrationV3Completed)
     }
 
+    /// v0.3 takeover: refresh on the first launch of the tabbed UI. The
+    /// Commit-1 snapshot may be stale (the user may have edited text in the
+    /// v0.2 UI between Commit 1 and Commit 2), so this step copies the
+    /// LATEST `ft.window.<uuid>.text` into `ft.note.<uuid>.text` before
+    /// the tabbed UI is shown for the first time.
+    ///
+    /// Gated on `ft.migration.v3.takeoverCompleted` so it runs at most once.
+    /// Non-destructive: v0.2 keys are READ, never modified or deleted.
+    ///
+    /// Strict write order is the same as the dormant migration. The flag is
+    /// only set after all per-note keys, ft.notes, ft.activeNoteID,
+    /// ft.panel.*, and ft.panel.clickThrough=false have been written. A
+    /// crash anywhere before the flag means the next launch retries safely.
+    private func performV3TakeoverIfNeeded() {
+        if ud.bool(forKey: K.migrationV3TakeoverCompleted) { return }
+
+        let sourceUUIDs = (ud.array(forKey: K.windows) as? [String] ?? [])
+            .compactMap { UUID(uuidString: $0) }
+
+        if !sourceUUIDs.isEmpty {
+            let nowEpoch = Date().timeIntervalSince1970
+
+            // 1. Per-note keys: refresh text from LATEST v0.2 text. Preserve
+            //    Commit-1's createdAt if it exists (best timestamp we have).
+            //    Always bump updatedAt.
+            for id in sourceUUIDs {
+                let v2Prefix = "ft.window.\(id.uuidString)"
+                let v3Prefix = "ft.note.\(id.uuidString)"
+                let latestText = ud.string(forKey: "\(v2Prefix).text") ?? ""
+                ud.set(latestText, forKey: "\(v3Prefix).text")
+                if ud.object(forKey: "\(v3Prefix).createdAt") == nil {
+                    ud.set(nowEpoch, forKey: "\(v3Prefix).createdAt")
+                }
+                ud.set(nowEpoch, forKey: "\(v3Prefix).updatedAt")
+            }
+
+            // 2. ft.notes: overwrite with current ft.windows (handles
+            //    additions / deletions / reorderings made after Commit 1).
+            ud.set(sourceUUIDs.map { $0.uuidString }, forKey: K.notes)
+
+            // 3. ft.activeNoteID: keep the existing value if it still points
+            //    at one of the current source UUIDs; otherwise fall back to
+            //    the first one.
+            let currentActive = ud.string(forKey: K.activeNoteID).flatMap { UUID(uuidString: $0) }
+            if let active = currentActive, sourceUUIDs.contains(active) {
+                // unchanged
+            } else {
+                ud.set(sourceUUIDs[0].uuidString, forKey: K.activeNoteID)
+            }
+
+            // 4. ft.panel.*: refresh from the LATEST first-window visuals.
+            //    Catches any visual tweaks the user made after Commit 1.
+            let firstID = sourceUUIDs[0]
+            let v2Prefix = "ft.window.\(firstID.uuidString)"
+            if let v = ud.string(forKey: "\(v2Prefix).frame")     { ud.set(v, forKey: PanelState.K.frame) }
+            if let v = ud.object(forKey: "\(v2Prefix).fontSize")  { ud.set(v, forKey: PanelState.K.fontSize) }
+            if let v = ud.string(forKey: "\(v2Prefix).color")     { ud.set(v, forKey: PanelState.K.color) }
+            if let v = ud.object(forKey: "\(v2Prefix).opacity")   { ud.set(v, forKey: PanelState.K.opacity) }
+            if let v = ud.string(forKey: "\(v2Prefix).alignment") { ud.set(v, forKey: PanelState.K.alignment) }
+            if let v = ud.object(forKey: "\(v2Prefix).isRTL")     { ud.set(v, forKey: PanelState.K.isRTL) }
+            if let v = ud.object(forKey: "\(v2Prefix).focusMode") { ud.set(v, forKey: PanelState.K.focusMode) }
+        }
+
+        // 5. ALWAYS force clickThrough = false. Same anti-trap guarantee as
+        //    Commit 1, preserved through takeover. Applies even on a fresh
+        //    install with no source UUIDs.
+        ud.set(false, forKey: PanelState.K.clickThrough)
+
+        // 6. Mark takeover complete ONLY after everything above succeeded.
+        ud.set(true, forKey: K.migrationV3TakeoverCompleted)
+    }
+
+    // MARK: Note CRUD (used by PanelController in Commit 2)
+
+    /// Set the active note and persist `ft.activeNoteID`. Passing nil
+    /// removes the key. Safe to call when the id isn't in `notes`.
+    func setActiveNote(_ id: UUID?) {
+        activeNoteID = id
+        if let id = id {
+            ud.set(id.uuidString, forKey: K.activeNoteID)
+        } else {
+            ud.removeObject(forKey: K.activeNoteID)
+        }
+    }
+
+    /// Append a NoteState, persist `ft.notes`, and make it active.
+    /// The caller is responsible for having seeded `ft.note.<id>.*` keys
+    /// before calling — PanelController.newTab does this in the correct
+    /// order (per-note keys first, then this call).
+    func appendNote(_ note: NoteState) {
+        notes.append(note)
+        ud.set(notes.map { $0.id.uuidString }, forKey: K.notes)
+        setActiveNote(note.id)
+    }
+
+    /// Permanently delete a note: drop from `notes[]`, rewrite `ft.notes`,
+    /// purge `ft.note.<id>.*` keys. If the deleted note was active, pick
+    /// the previous note (or first remaining) as the new active.
+    /// Returns the new active id (nil if `notes` is now empty — caller
+    /// should typically follow up with a fresh `appendNote`).
+    @discardableResult
+    func deleteNote(id: UUID) -> UUID? {
+        guard let idx = notes.firstIndex(where: { $0.id == id }) else { return activeNoteID }
+
+        let wasActive = (activeNoteID == id)
+        notes.remove(at: idx)
+        ud.set(notes.map { $0.id.uuidString }, forKey: K.notes)
+
+        let prefix = "ft.note.\(id.uuidString)"
+        for suffix in [".text", ".createdAt", ".updatedAt"] {
+            ud.removeObject(forKey: prefix + suffix)
+        }
+
+        if wasActive {
+            if notes.isEmpty {
+                setActiveNote(nil)
+            } else {
+                let pick = notes[max(0, idx - 1)].id
+                setActiveNote(pick)
+            }
+        }
+        return activeNoteID
+    }
+
     /// Refresh in-memory v3 model from UserDefaults after migration (or on a
     /// returning launch where migration was already done previously).
     private func loadV3State() {
@@ -245,6 +370,7 @@ final class AppState: ObservableObject {
         static let notes = "ft.notes"
         static let activeNoteID = "ft.activeNoteID"
         static let migrationV3Completed = "ft.migration.v3.completed"
+        static let migrationV3TakeoverCompleted = "ft.migration.v3.takeoverCompleted"
     }
 
     private enum LegacyKeys {

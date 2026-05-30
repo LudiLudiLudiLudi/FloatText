@@ -1,47 +1,52 @@
 import SwiftUI
 import AppKit
 
-/// SwiftUI root for one floating panel. Layout (top to bottom):
-///   1. Top header — window management. Left/right split so the destructive
-///      action is visually isolated:
-///        LEFT (destructive):
-///          [trash]      Delete    — purge window + per-window UD, NSAlert confirm
-///        RIGHT (safer, frequent):
-///          [plus]       New Window
-///          [eye.slash]  Hide      — orderOut, fully reversible
-///          [eraser.fill] Clear    — wipe text only, window stays, NSAlert confirm
-///      Visible when !clickThrough. Stays visible in Focus Mode so
-///      management remains reachable.
-///   2. RTLTextView — fills remaining space.
-///   3. ControlsBar (formatting: fonts, color, alignment, RTL, focus,
-///      opacity) — visible when !clickThrough AND (!focusMode || hovering).
+/// SwiftUI root for the single floating panel (Commit 2 of the tabbed-
+/// panel migration). Layout, top to bottom:
+///
+///   1. Top header — window + tab management:
+///        LEFT:   [trash] Delete current note  (red, NSAlert confirm)
+///        CENTER: TabBar (horizontal scrolling tab strip + `+` to add)
+///        RIGHT:  [eye.slash] Hide panel
+///                [eraser.fill] Clear current note (NSAlert confirm)
+///      Visible when !panel.clickThrough. Stays visible in Focus Mode so
+///      window + tab management remain reachable.
+///
+///   2. NoteEditor — the active note's RTLTextView, fills remaining space.
+///      Keyed by `.id(activeNoteID)` so SwiftUI tears down and rebuilds
+///      the editor (and its NSTextView) when the user switches tabs —
+///      each tab gets a fresh undo stack and clean Hebrew/RTL setup.
+///
+///   3. ControlsBar (formatting) — A-/A+, color, alignment, RTL, focus,
+///      opacity. Bound to PanelState (panel-wide for MVP per the v0.3
+///      spec). Visible when !clickThrough AND (!focusMode || hovering).
 ///
 /// When clickThrough is on the entire panel ignores mouse events, so both
-/// bars are hidden — their absence is the visible state indicator.
+/// bars are hidden — that absence is the visible state indicator.
 struct OverlayView: View {
-    @ObservedObject var windowState: WindowState
-    /// Hide just this panel (orderOut). Non-destructive; restorable via
-    /// 'Show All Windows'.
+    @ObservedObject var appState: AppState
     var onHide: () -> Void = {}
-    /// Create a new blank panel.
-    var onNewWindow: () -> Void = {}
-    /// Permanently delete this panel's WindowState + UserDefaults.
-    /// The button shows an NSAlert before calling this.
-    var onDelete: () -> Void = {}
+    var onNewTab: () -> Void = {}
+    var onDeleteNote: () -> Void = {}
+    var onClearNote: () -> Void = {}
     @State private var isHovering = false
 
     private var showFormatControls: Bool {
-        if windowState.clickThrough { return false }
-        if !windowState.focusMode { return true }
+        if appState.panel.clickThrough { return false }
+        if !appState.panel.focusMode { return true }
         return isHovering
     }
 
-    private var showTopHeader: Bool { !windowState.clickThrough }
+    private var showTopHeader: Bool { !appState.panel.clickThrough }
+
+    private var activeNote: NoteState? {
+        appState.notes.first { $0.id == appState.activeNoteID }
+    }
 
     var body: some View {
         ZStack {
             Color.black
-                .opacity(windowState.backgroundOpacity)
+                .opacity(appState.panel.backgroundOpacity)
                 .ignoresSafeArea()
 
             VStack(spacing: 0) {
@@ -49,19 +54,24 @@ struct OverlayView: View {
                     topHeader
                 }
 
-                RTLTextView(
-                    text: $windowState.text,
-                    fontSize: windowState.fontSize,
-                    textColor: windowState.textColor,
-                    alignment: windowState.alignment.nsTextAlignment,
-                    isRTL: windowState.isRTL
-                )
+                Group {
+                    if let note = activeNote {
+                        NoteEditor(note: note, panel: appState.panel)
+                            .id(note.id) // recreate RTLTextView per tab
+                    } else {
+                        // Empty state. Shouldn't normally happen — the
+                        // AppDelegate seeds a blank note when notes is
+                        // empty — but show a neutral filler so the panel
+                        // never collapses.
+                        Color.clear
+                    }
+                }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .padding(.horizontal, 4)
                 .padding(.top, showTopHeader ? 0 : 8)
 
                 if showFormatControls {
-                    ControlsBar(windowState: windowState)
+                    ControlsBar(panel: appState.panel)
                         .transition(.move(edge: .bottom).combined(with: .opacity))
                 }
             }
@@ -73,31 +83,34 @@ struct OverlayView: View {
 
     private var topHeader: some View {
         HStack(spacing: 0) {
-            // LEFT cluster: destructive Delete, visually isolated.
+            // LEFT: destructive Delete, visually isolated.
             Button(action: confirmDelete) {
                 Image(systemName: "trash")
             }
-            .help("Delete this window (text will be permanently removed)")
+            .help("Delete this note (text will be permanently removed)")
             .foregroundStyle(.red.opacity(0.85))
+            .disabled(activeNote == nil)
 
-            Spacer(minLength: 0)
+            // CENTER: tab strip. Takes flexible width.
+            TabBar(
+                appState: appState,
+                onSelectNote: { appState.setActiveNote($0) },
+                onNewTab: onNewTab
+            )
+            .padding(.horizontal, 6)
 
-            // RIGHT cluster: safer / more frequent actions.
+            // RIGHT: hide + clear (safer actions).
             HStack(spacing: 8) {
-                Button(action: onNewWindow) {
-                    Image(systemName: "plus")
-                }
-                .help("New Window")
-
                 Button(action: onHide) {
                     Image(systemName: "eye.slash")
                 }
-                .help("Hide this window (text is preserved; reopen via Show All Windows)")
+                .help("Hide the panel (text is preserved; reopen via Show Panel)")
 
                 Button(action: confirmClear) {
                     Image(systemName: "eraser.fill")
                 }
-                .help("Clear the text in this note (window itself stays)")
+                .help("Clear the text of the current note (the note itself stays)")
+                .disabled(activeNote == nil)
             }
         }
         .buttonStyle(.borderless)
@@ -109,31 +122,50 @@ struct OverlayView: View {
 
     private func confirmDelete() {
         let alert = NSAlert()
-        alert.messageText = "Delete this window?"
-        alert.informativeText = "The window's text and settings will be permanently removed. Other windows are unaffected."
+        alert.messageText = "Delete this note?"
+        alert.informativeText = "The note's text will be permanently removed. Other notes are unaffected."
         alert.alertStyle = .warning
-        alert.addButton(withTitle: "Cancel") // first → Return cancels
+        alert.addButton(withTitle: "Cancel")
         alert.addButton(withTitle: "Delete")
         if #available(macOS 11.0, *) {
             alert.buttons.last?.hasDestructiveAction = true
         }
         if alert.runModal() == .alertSecondButtonReturn {
-            onDelete()
+            onDeleteNote()
         }
     }
 
     private func confirmClear() {
         let alert = NSAlert()
         alert.messageText = "Clear this note?"
-        alert.informativeText = "The text in this window will be removed. The window itself will remain."
+        alert.informativeText = "The text in this note will be removed. The note itself will remain."
         alert.alertStyle = .warning
-        alert.addButton(withTitle: "Cancel") // first → Return cancels
+        alert.addButton(withTitle: "Cancel")
         alert.addButton(withTitle: "Clear")
         if #available(macOS 11.0, *) {
             alert.buttons.last?.hasDestructiveAction = true
         }
         if alert.runModal() == .alertSecondButtonReturn {
-            windowState.text = ""
+            onClearNote()
         }
+    }
+}
+
+/// One tab's editor. Separated as its own View so SwiftUI's `.id(noteID)`
+/// modifier can tear it down on tab switch — that recreates the RTLTextView
+/// (and its NSTextView) with a fresh undo stack and per-tab editing state.
+/// RTLTextView.swift itself is unchanged.
+private struct NoteEditor: View {
+    @ObservedObject var note: NoteState
+    @ObservedObject var panel: PanelState
+
+    var body: some View {
+        RTLTextView(
+            text: $note.text,
+            fontSize: panel.fontSize,
+            textColor: panel.textColor,
+            alignment: panel.alignment.nsTextAlignment,
+            isRTL: panel.isRTL
+        )
     }
 }

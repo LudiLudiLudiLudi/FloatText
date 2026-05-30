@@ -20,6 +20,8 @@
 		B100000000000000000000B1 /* WindowManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = B000000000000000000000B1 /* WindowManager.swift */; };
 		B100000000000000000000B2 /* NoteState.swift in Sources */ = {isa = PBXBuildFile; fileRef = B000000000000000000000B2 /* NoteState.swift */; };
 		B100000000000000000000B3 /* PanelState.swift in Sources */ = {isa = PBXBuildFile; fileRef = B000000000000000000000B3 /* PanelState.swift */; };
+		B100000000000000000000B4 /* PanelController.swift in Sources */ = {isa = PBXBuildFile; fileRef = B000000000000000000000B4 /* PanelController.swift */; };
+		B100000000000000000000B5 /* TabBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = B000000000000000000000B5 /* TabBar.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -37,6 +39,8 @@
 		B000000000000000000000B1 /* WindowManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WindowManager.swift; sourceTree = "<group>"; };
 		B000000000000000000000B2 /* NoteState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NoteState.swift; sourceTree = "<group>"; };
 		B000000000000000000000B3 /* PanelState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PanelState.swift; sourceTree = "<group>"; };
+		B000000000000000000000B4 /* PanelController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PanelController.swift; sourceTree = "<group>"; };
+		B000000000000000000000B5 /* TabBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TabBar.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -82,6 +86,8 @@
 				B000000000000000000000B1 /* WindowManager.swift */,
 				B000000000000000000000B2 /* NoteState.swift */,
 				B000000000000000000000B3 /* PanelState.swift */,
+				B000000000000000000000B4 /* PanelController.swift */,
+				B000000000000000000000B5 /* TabBar.swift */,
 			);
 			name = FloatText;
 			path = Sources/FloatText;
@@ -168,6 +174,8 @@
 				B100000000000000000000B1 /* WindowManager.swift in Sources */,
 				B100000000000000000000B2 /* NoteState.swift in Sources */,
 				B100000000000000000000B3 /* PanelState.swift in Sources */,
+				B100000000000000000000B4 /* PanelController.swift in Sources */,
+				B100000000000000000000B5 /* TabBar.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

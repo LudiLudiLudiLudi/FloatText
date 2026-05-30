@@ -24,27 +24,14 @@ final class FloatingPanelController: NSObject, NSWindowDelegate, ObservableObjec
     }
 
     private func configure() {
-        let host = NSHostingView(
-            rootView: OverlayView(
-                windowState: windowState,
-                onHide: { [weak self] in
-                    guard let self = self else { return }
-                    self.manager?.hideWindow(id: self.windowState.id)
-                },
-                onNewWindow: { [weak self] in
-                    self?.manager?.newWindow()
-                },
-                onDelete: { [weak self] in
-                    guard let self = self else { return }
-                    self.manager?.deleteWindow(id: self.windowState.id)
-                }
-            )
-        )
-        // NSWindow auto-sets autoresizingMask + frame on contentView when
-        // translatesAutoresizingMaskIntoConstraints is left at its default (true).
-        // Do NOT set it to false here without adding replacement constraints —
-        // doing so leaves the host view's frame stuck and SwiftUI hit-testing
-        // uses a stale layout, so clicks fall into dead zones.
+        // DORMANT (v0.3 Commit 2 of the tabbed-panel migration):
+        // FloatingPanelController is no longer instantiated by anyone —
+        // the AppDelegate uses PanelController against the new tabbed UI.
+        // This file is kept on disk per the user's instruction "do not
+        // delete old WindowState / WindowManager files yet"; the body
+        // below is a no-op stub that exists only to keep the file
+        // compiling.
+        let host = NSHostingView(rootView: Color.clear)
         panel.contentView = host
         panel.delegate = self
         panel.setFrame(windowState.windowFrame, display: false)

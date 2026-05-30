@@ -6,37 +6,42 @@ import AppKit
 ///   Row 1: A-, A+, color, alignment, RTL, focus toggle.
 ///   Row 2: opacity slider.
 ///
-/// Window-management controls (`+` new window, `×` close window) deliberately
-/// live OUTSIDE this view — see the top header in `OverlayView`. That keeps
-/// them reachable even when Focus Mode hides this bar.
+/// All settings are PANEL-WIDE for v0.3 MVP (per the user's spec): font
+/// size, color, alignment, RTL direction, focus mode, and background
+/// opacity apply to whichever note tab is currently active and to all
+/// other tabs equally. Per-tab visuals are a future enhancement.
+///
+/// Window-management controls (`+` new tab, `×` close, `🧹` clear) live
+/// in OverlayView's top header, not here, so they stay reachable in
+/// Focus Mode.
 struct ControlsBar: View {
-    @ObservedObject var windowState: WindowState
+    @ObservedObject var panel: PanelState
 
     var body: some View {
         VStack(spacing: 4) {
             HStack(spacing: 6) {
-                Button { windowState.fontSize = max(10, windowState.fontSize - 1) } label: {
+                Button { panel.fontSize = max(10, panel.fontSize - 1) } label: {
                     Image(systemName: "textformat.size.smaller")
                 }
                 .help("Decrease font size")
 
-                Button { windowState.fontSize = min(48, windowState.fontSize + 1) } label: {
+                Button { panel.fontSize = min(48, panel.fontSize + 1) } label: {
                     Image(systemName: "textformat.size.larger")
                 }
                 .help("Increase font size")
 
                 ColorPicker("", selection: Binding(
-                    get: { Color(nsColor: windowState.textColor) },
+                    get: { Color(nsColor: panel.textColor) },
                     set: { newValue in
                         let ns = NSColor(newValue).usingColorSpace(.sRGB) ?? .white
-                        windowState.textColorHex = ns.hexString
+                        panel.textColorHex = ns.hexString
                     }
                 ))
                 .labelsHidden()
                 .frame(width: 24, height: 18)
                 .help("Text color")
 
-                Picker("", selection: $windowState.alignment) {
+                Picker("", selection: $panel.alignment) {
                     Image(systemName: "text.alignleft").tag(TextAlignmentOption.left)
                     Image(systemName: "text.aligncenter").tag(TextAlignmentOption.center)
                     Image(systemName: "text.alignright").tag(TextAlignmentOption.right)
@@ -46,26 +51,26 @@ struct ControlsBar: View {
                 .frame(minWidth: 84, idealWidth: 96, maxWidth: 110)
 
                 Button {
-                    windowState.isRTL.toggle()
+                    panel.isRTL.toggle()
                 } label: {
-                    Text(windowState.isRTL ? "RTL" : "LTR")
+                    Text(panel.isRTL ? "RTL" : "LTR")
                         .font(.system(size: 10, weight: .semibold, design: .monospaced))
                         .frame(width: 30)
                 }
                 .help("Toggle text direction")
 
                 Button {
-                    windowState.focusMode.toggle()
+                    panel.focusMode.toggle()
                 } label: {
-                    Image(systemName: windowState.focusMode ? "eye" : "eye.slash")
+                    Image(systemName: panel.focusMode ? "eye" : "eye.slash")
                 }
-                .help("Toggle Focus Mode (hide controls)")
+                .help("Toggle Focus Mode (hide formatting controls)")
             }
 
             HStack(spacing: 6) {
                 Image(systemName: "circle.lefthalf.filled")
                     .foregroundStyle(.white.opacity(0.6))
-                Slider(value: $windowState.backgroundOpacity, in: 0.0...1.0)
+                Slider(value: $panel.backgroundOpacity, in: 0.0...1.0)
                     .controlSize(.mini)
                     .help("Background opacity")
             }

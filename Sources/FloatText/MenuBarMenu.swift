@@ -1,91 +1,72 @@
 import SwiftUI
 import AppKit
 
-/// Menu bar contents. Per-window items target the currently-active window
-/// (`windowManager.activeWindowState`); global items target AppState.
+/// Menu bar contents for the v0.3 single tabbed panel.
+///
+/// Note ordering / shortcuts:
+///   * Show / Hide Panel  ⌘⇧H        (dynamic — there is only one panel)
+///   * New Tab            ⌘T
+///   * Delete Note…                  (NSAlert; no shortcut — destructive)
+///   * Clear Note…                   (NSAlert; no shortcut — destructive)
+///   * Focus Mode         ⌘⇧F
+///   * Always on Top  (global)
+///   * Click-through Mode
+///   * Disable Click-through         (rescue, only when click-through is on)
+///   * RTL                ⌘⇧R
+///   * Hide Dock Icon  (global)
+///   * Launch at Login (global)
+///   * Quit               ⌘Q
+///
+/// ⌘W is deliberately NOT bound in this commit per the user's spec —
+/// we will revisit shortcut bindings after the tabbed UI is verified.
 struct MenuBarMenu: View {
     @EnvironmentObject var appState: AppState
-    @EnvironmentObject var windowManager: WindowManager
-
-    /// The window currently targeted by per-window menu commands.
-    private var activeWindow: WindowState? { windowManager.activeWindowState }
+    @EnvironmentObject var panelController: PanelController
 
     var body: some View {
-        Button("Show All Windows") {
-            windowManager.showAllOrCreate()
+        Button(panelController.panel.isVisible ? "Hide Panel" : "Show Panel") {
+            panelController.toggleVisible()
         }
         .keyboardShortcut("h", modifiers: [.command, .shift])
 
-        Button("Hide All Windows") {
-            windowManager.hideAll()
-        }
-        .disabled(!windowManager.anyVisible)
+        Divider()
 
-        Button("New Window") {
-            windowManager.newWindow()
+        Button("New Tab") {
+            panelController.newTab()
         }
-        .keyboardShortcut("n", modifiers: .command)
+        .keyboardShortcut("t", modifiers: .command)
 
-        Button("Hide Current Window") {
-            if let id = windowManager.activeWindowID {
-                windowManager.hideWindow(id: id)
-            }
+        Button("Delete Note…") {
+            confirmAndDeleteActive()
         }
-        .keyboardShortcut("w", modifiers: .command)
-        .disabled(windowManager.activeWindowID == nil)
+        .disabled(appState.activeNoteID == nil)
 
-        Button("Delete Current Window…") {
-            if let id = windowManager.activeWindowID {
-                confirmAndDeleteWindow(id: id)
-            }
+        Button("Clear Note…") {
+            confirmAndClearActive()
         }
-        .disabled(windowManager.activeWindowID == nil)
-
-        Button("Clear Current Note…") {
-            if let win = windowManager.activeWindowState {
-                confirmAndClearNote(win)
-            }
-        }
-        .disabled(windowManager.activeWindowState == nil)
+        .disabled(appState.activeNoteID == nil)
 
         Divider()
 
-        if let win = activeWindow {
-            Toggle("Focus Mode (hide controls)", isOn: Binding(
-                get: { win.focusMode },
-                set: { win.focusMode = $0 }
-            ))
+        Toggle("Focus Mode", isOn: $appState.panel.focusMode)
             .keyboardShortcut("f", modifiers: [.command, .shift])
-        }
 
         Toggle("Always on Top", isOn: $appState.alwaysOnTop)
 
-        if let win = activeWindow {
-            Toggle("Click-through Mode", isOn: Binding(
-                get: { win.clickThrough },
-                set: { win.clickThrough = $0 }
-            ))
-        }
+        Toggle("Click-through Mode", isOn: $appState.panel.clickThrough)
 
-        // Rescue path: surfaced only when some window is in click-through.
-        // Guarantees a no-trap-state exit in multi-window setups where the
-        // active window's toggle may target a different panel than the one
-        // that's actually stuck.
-        if windowManager.anyClickThrough {
-            Button("Disable Click-through (All Windows)") {
-                windowManager.disableClickThroughOnAll()
+        // Rescue: always-available exit even if the panel is in
+        // click-through and unreachable. Surfaces only when needed.
+        if appState.panel.clickThrough {
+            Button("Disable Click-through") {
+                appState.panel.clickThrough = false
             }
         }
 
         Divider()
 
-        if let win = activeWindow {
-            Toggle("RTL", isOn: Binding(
-                get: { win.isRTL },
-                set: { win.isRTL = $0 }
-            ))
+        Toggle("RTL", isOn: $appState.panel.isRTL)
             .keyboardShortcut("r", modifiers: [.command, .shift])
-        }
 
         Divider()
 
@@ -114,12 +95,10 @@ struct MenuBarMenu: View {
         .keyboardShortcut("q", modifiers: .command)
     }
 
-    /// Same confirmation copy as the in-window trash button. Belt-and-suspenders:
-    /// the action is explicitly labelled 'Delete...' AND requires confirmation.
-    private func confirmAndDeleteWindow(id: UUID) {
+    private func confirmAndDeleteActive() {
         let alert = NSAlert()
-        alert.messageText = "Delete this window?"
-        alert.informativeText = "The window's text and settings will be permanently removed. Other windows are unaffected."
+        alert.messageText = "Delete this note?"
+        alert.informativeText = "The note's text will be permanently removed. Other notes are unaffected."
         alert.alertStyle = .warning
         alert.addButton(withTitle: "Cancel")
         alert.addButton(withTitle: "Delete")
@@ -127,16 +106,14 @@ struct MenuBarMenu: View {
             alert.buttons.last?.hasDestructiveAction = true
         }
         if alert.runModal() == .alertSecondButtonReturn {
-            windowManager.deleteWindow(id: id)
+            panelController.deleteActiveNote()
         }
     }
 
-    /// Wipes only the text of the active window. Window itself, frame, color,
-    /// opacity, alignment, RTL, etc. all remain unchanged.
-    private func confirmAndClearNote(_ win: WindowState) {
+    private func confirmAndClearActive() {
         let alert = NSAlert()
         alert.messageText = "Clear this note?"
-        alert.informativeText = "The text in this window will be removed. The window itself will remain."
+        alert.informativeText = "The text in this note will be removed. The note itself will remain."
         alert.alertStyle = .warning
         alert.addButton(withTitle: "Cancel")
         alert.addButton(withTitle: "Clear")
@@ -144,7 +121,7 @@ struct MenuBarMenu: View {
             alert.buttons.last?.hasDestructiveAction = true
         }
         if alert.runModal() == .alertSecondButtonReturn {
-            win.text = ""
+            panelController.clearActiveNote()
         }
     }
 }
