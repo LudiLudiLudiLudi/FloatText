@@ -29,8 +29,19 @@ final class AppState: ObservableObject {
     @Published var hideDockIcon: Bool { didSet { ud.set(hideDockIcon, forKey: K.hideDockIcon) } }
     @Published var launchAtLogin: Bool { didSet { ud.set(launchAtLogin, forKey: K.launchAtLogin) } }
 
-    // MARK: Windows
+    // MARK: Windows (v0.2, still drives the visible UI as of Commit 1)
     @Published var windows: [WindowState] = []
+
+    // MARK: v0.3 dormant model
+    //
+    // Added in Commit 1 of the tabbed-panel migration. These properties are
+    // populated from a one-shot v0.2 → v0.3 migration but are NOT consumed
+    // by the visible UI yet — that switches in Commit 2. Holding them on
+    // AppState now lets the migration run in a single place and lets future
+    // PanelController / TabBar code read them without further plumbing.
+    @Published var panel: PanelState
+    @Published var notes: [NoteState] = []
+    @Published var activeNoteID: UUID?
 
     private let ud = UserDefaults.standard
 
@@ -41,9 +52,14 @@ final class AppState: ObservableObject {
         self.alwaysOnTop = d.object(forKey: K.alwaysOnTop) as? Bool ?? true
         self.hideDockIcon = d.object(forKey: K.hideDockIcon) as? Bool ?? false
         self.launchAtLogin = d.object(forKey: K.launchAtLogin) as? Bool ?? false
+        // Placeholder PanelState (defaults read from UD; may be empty pre-migration).
+        // Re-instantiated after the v3 migration writes ft.panel.* keys.
+        self.panel = PanelState()
 
-        migrateLegacyKeysIfNeeded()
-        loadWindows()
+        migrateLegacyKeysIfNeeded() // v1 → v2 (existing)
+        loadWindows()               // populates windows[] from v2 keys
+        migrateLegacyToV3IfNeeded() // v2 → v3, dormant; uses windows[] as source
+        loadV3State()               // populate panel / notes / activeNoteID from v3 keys
     }
 
     // MARK: Migration
@@ -137,6 +153,86 @@ final class AppState: ObservableObject {
         ud.set(windows.map { $0.id.uuidString }, forKey: K.windows)
     }
 
+    // MARK: v0.2 → v0.3 migration (dormant model, non-destructive)
+    //
+    // Reads from the already-loaded windows[] and writes the new ft.panel.*
+    // and ft.note.<uuid>.* schemas. Strict write order so a crash mid-flight
+    // never leaves ft.notes pointing at note keys that don't exist yet:
+    //
+    //   1. per-note keys for every window  (text + createdAt + updatedAt)
+    //   2. ft.notes                         (UUID array preserves window order)
+    //   3. ft.activeNoteID                  (first window's id)
+    //   4. ft.panel.*                       (first window's visual settings,
+    //                                        clickThrough always forced false)
+    //   5. ft.migration.v3.completed = true
+    //
+    // v0.2 keys (ft.windows, ft.window.<uuid>.*) are NOT touched — running
+    // an older binary against the same defaults domain still works.
+    private func migrateLegacyToV3IfNeeded() {
+        if ud.bool(forKey: K.migrationV3Completed) { return }
+
+        let sources = self.windows  // already loaded by loadWindows()
+
+        if !sources.isEmpty {
+            let nowEpoch = Date().timeIntervalSince1970
+
+            // 1. Per-note keys first.
+            for win in sources {
+                let prefix = "ft.note.\(win.id.uuidString)"
+                ud.set(win.text, forKey: "\(prefix).text")
+                ud.set(nowEpoch, forKey: "\(prefix).createdAt")
+                ud.set(nowEpoch, forKey: "\(prefix).updatedAt")
+            }
+
+            // 2. ft.notes (array order = window order).
+            ud.set(sources.map { $0.id.uuidString }, forKey: K.notes)
+
+            // 3. ft.activeNoteID = first window's id.
+            ud.set(sources[0].id.uuidString, forKey: K.activeNoteID)
+
+            // 4. ft.panel.* from first window's visual settings.
+            let first = sources[0]
+            ud.set(NSStringFromRect(first.windowFrame), forKey: PanelState.K.frame)
+            ud.set(Double(first.fontSize), forKey: PanelState.K.fontSize)
+            ud.set(first.textColorHex, forKey: PanelState.K.color)
+            ud.set(first.backgroundOpacity, forKey: PanelState.K.opacity)
+            ud.set(first.alignment.rawValue, forKey: PanelState.K.alignment)
+            ud.set(first.isRTL, forKey: PanelState.K.isRTL)
+            ud.set(first.focusMode, forKey: PanelState.K.focusMode)
+            // Always start panel.clickThrough = false so the app cannot
+            // relaunch in a trapped state.
+            ud.set(false, forKey: PanelState.K.clickThrough)
+        } else {
+            // No source windows. Still ensure panel.clickThrough = false so
+            // the new model never starts trapped — even on a fresh install
+            // where this key wouldn't exist yet.
+            ud.set(false, forKey: PanelState.K.clickThrough)
+        }
+
+        // 5. ONLY now mark migration complete.
+        ud.set(true, forKey: K.migrationV3Completed)
+    }
+
+    /// Refresh in-memory v3 model from UserDefaults after migration (or on a
+    /// returning launch where migration was already done previously).
+    private func loadV3State() {
+        // Re-instantiate PanelState so it reads the freshly-written ft.panel.*
+        // values (the placeholder created in init() ran before migration).
+        self.panel = PanelState()
+
+        let ids = (ud.array(forKey: K.notes) as? [String] ?? [])
+            .compactMap { UUID(uuidString: $0) }
+        self.notes = ids.compactMap { NoteState(id: $0) }
+
+        if let s = ud.string(forKey: K.activeNoteID),
+           let u = UUID(uuidString: s),
+           self.notes.contains(where: { $0.id == u }) {
+            self.activeNoteID = u
+        } else {
+            self.activeNoteID = self.notes.first?.id
+        }
+    }
+
     // MARK: Keys
 
     enum K {
@@ -145,6 +241,10 @@ final class AppState: ObservableObject {
         static let launchAtLogin = "ft.launchAtLogin"
         static let windows = "ft.windows"
         static let migrationV2Completed = "ft.migration.v2.completed"
+        // v0.3
+        static let notes = "ft.notes"
+        static let activeNoteID = "ft.activeNoteID"
+        static let migrationV3Completed = "ft.migration.v3.completed"
     }
 
     private enum LegacyKeys {
