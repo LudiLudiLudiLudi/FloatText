@@ -71,7 +71,7 @@ struct OverlayView: View {
                 .padding(.top, showTopHeader ? 0 : 8)
 
                 if showFormatControls {
-                    ControlsBar(panel: appState.panel)
+                    ControlsBar(panel: appState.panel, activeNote: activeNote)
                         .transition(.move(edge: .bottom).combined(with: .opacity))
                 }
             }
@@ -163,7 +163,7 @@ private struct NoteEditor: View {
         RTLTextView(
             text: $note.text,
             fontSize: panel.fontSize,
-            textColor: panel.textColor,
+            textColor: note.textColor,      // per-note color (v0.3 follow-up)
             alignment: panel.alignment.nsTextAlignment,
             isRTL: panel.isRTL
         )

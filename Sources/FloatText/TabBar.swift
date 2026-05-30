@@ -34,8 +34,8 @@ struct TabBar: View {
     }
 }
 
-/// One tab. Observes its NoteState so the displayTitle stays live as the
-/// user types in the note's text.
+/// One tab. Observes its NoteState so the displayTitle and color marker
+/// stay live as the user edits the note.
 private struct TabButton: View {
     @ObservedObject var note: NoteState
     let isActive: Bool
@@ -43,15 +43,32 @@ private struct TabButton: View {
 
     var body: some View {
         Button(action: onSelect) {
-            Text(note.displayTitle)
-                .font(.system(size: 11))
-                .lineLimit(1)
-                .padding(.horizontal, 7)
-                .padding(.vertical, 2)
-                .background(isActive ? Color.white.opacity(0.18) : Color.clear)
-                .cornerRadius(4)
+            HStack(spacing: 5) {
+                // Color marker — this note's own text color, so tabs are
+                // identifiable at a glance.
+                Circle()
+                    .fill(Color(nsColor: note.textColor))
+                    .frame(width: 7, height: 7)
+                    .overlay(
+                        Circle().stroke(Color.black.opacity(0.35), lineWidth: 0.5)
+                    )
+
+                Text(note.displayTitle)
+                    .font(.system(size: 11, weight: isActive ? .semibold : .regular))
+                    .lineLimit(1)
+            }
+            .padding(.horizontal, 8)
+            .padding(.vertical, 3)
+            .background(
+                RoundedRectangle(cornerRadius: 5)
+                    .fill(isActive ? Color.white.opacity(0.22) : Color.white.opacity(0.04))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 5)
+                    .stroke(isActive ? Color.white.opacity(0.45) : Color.clear, lineWidth: 1)
+            )
         }
         .buttonStyle(.borderless)
-        .foregroundStyle(.white.opacity(isActive ? 1.0 : 0.65))
+        .foregroundStyle(.white.opacity(isActive ? 1.0 : 0.6))
     }
 }

@@ -76,14 +76,24 @@ final class PanelController: NSObject, NSWindowDelegate, ObservableObject {
         let nowEpoch = now.timeIntervalSince1970
         let prefix = "ft.note.\(id.uuidString)"
 
+        // New tab inherits the CURRENTLY ACTIVE note's color so it visually
+        // matches what the user was just working in (least-surprising in a
+        // tabbed workflow). Falls back to a safe default when there's no
+        // active note.
+        let inheritedColor = appState.notes
+            .first { $0.id == appState.activeNoteID }?
+            .textColorHex ?? "#F2F2F2"
+
         // Per-note keys FIRST (same write-order discipline as the migration).
         let ud = UserDefaults.standard
         ud.set("", forKey: "\(prefix).text")
         ud.set(nowEpoch, forKey: "\(prefix).createdAt")
         ud.set(nowEpoch, forKey: "\(prefix).updatedAt")
+        ud.set(inheritedColor, forKey: "\(prefix).color")
 
         // Then append + activate (also persists ft.notes + ft.activeNoteID).
-        let note = NoteState(id: id, text: "", createdAt: now, updatedAt: now)
+        let note = NoteState(id: id, text: "", createdAt: now, updatedAt: now,
+                             textColorHex: inheritedColor)
         appState.appendNote(note)
     }
 

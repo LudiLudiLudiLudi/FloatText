@@ -32,7 +32,17 @@ final class PanelState: ObservableObject {
             ?? NSRect(x: 200, y: 200, width: 460, height: 520)
         self.fontSize = CGFloat(d.object(forKey: K.fontSize) as? Double ?? 18.0)
         self.textColorHex = d.string(forKey: K.color) ?? "#F2F2F2"
-        self.backgroundOpacity = d.object(forKey: K.opacity) as? Double ?? 0.60
+        // Background strength. Clamp to a readable band: at low values the
+        // tint nearly vanishes and text sits on whatever app is behind,
+        // producing muddy contrast. Floor 0.65; default 0.75.
+        let storedOpacity = d.object(forKey: K.opacity) as? Double ?? 0.75
+        let clamped = max(0.65, min(0.98, storedOpacity))
+        self.backgroundOpacity = clamped
+        // Persist the clamp now (init assignment does not fire didSet), so a
+        // previously-saved out-of-range value is normalized on disk too.
+        if clamped != storedOpacity {
+            d.set(clamped, forKey: K.opacity)
+        }
         self.alignment = TextAlignmentOption(rawValue: d.string(forKey: K.alignment) ?? "") ?? .right
         self.isRTL = d.object(forKey: K.isRTL) as? Bool ?? true
         self.focusMode = d.object(forKey: K.focusMode) as? Bool ?? false

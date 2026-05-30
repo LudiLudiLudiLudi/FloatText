@@ -20,6 +20,14 @@ final class NoteState: ObservableObject, Identifiable {
         didSet { ud.set(updatedAt.timeIntervalSince1970, forKey: K.updatedAt(prefix)) }
     }
 
+    /// Per-note text color (v0.3 follow-up). Each tab can have its own
+    /// visual identity. Persisted as `ft.note.<uuid>.color`.
+    @Published var textColorHex: String {
+        didSet { ud.set(textColorHex, forKey: K.color(prefix)) }
+    }
+
+    var textColor: NSColor { NSColor(hex: textColorHex) ?? .white }
+
     /// Derived label for the tab strip. First non-empty line of the text,
     /// trimmed and capped at 24 chars; falls back to "Untitled" when empty.
     /// Derived on the fly — no separate title field to keep persistence
@@ -37,13 +45,15 @@ final class NoteState: ObservableObject, Identifiable {
     }
 
     /// Construct in-memory with given values; caller is responsible for
-    /// persisting if needed (used during migration).
-    init(id: UUID, text: String, createdAt: Date, updatedAt: Date) {
+    /// persisting if needed (used during migration / new tab).
+    init(id: UUID, text: String, createdAt: Date, updatedAt: Date,
+         textColorHex: String = "#F2F2F2") {
         self.id = id
         self.prefix = "ft.note.\(id.uuidString)"
         self.text = text
         self.createdAt = createdAt
         self.updatedAt = updatedAt
+        self.textColorHex = textColorHex
     }
 
     /// Load from `ft.note.<id>.*` keys. Returns nil if no text key has ever
@@ -57,11 +67,34 @@ final class NoteState: ObservableObject, Identifiable {
             .map { Date(timeIntervalSince1970: $0) } ?? Date()
         let updated = (d.object(forKey: "\(prefix).updatedAt") as? Double)
             .map { Date(timeIntervalSince1970: $0) } ?? created
+
+        // Per-note color backfill (idempotent). Resolution order:
+        //   1. ft.note.<id>.color           (already per-note — use it)
+        //   2. ft.window.<id>.color         (the note reuses its v0.2 window
+        //                                    UUID, so this recovers each
+        //                                    note's ORIGINAL v0.2 color)
+        //   3. ft.panel.color               (the migrated panel-wide color)
+        //   4. #F2F2F2                       (safe default)
+        // The resolved value is written back so subsequent launches are stable.
+        let resolvedColor: String
+        if let c = d.string(forKey: "\(prefix).color") {
+            resolvedColor = c
+        } else if let c = d.string(forKey: "ft.window.\(id.uuidString).color") {
+            resolvedColor = c
+        } else if let c = d.string(forKey: "ft.panel.color") {
+            resolvedColor = c
+        } else {
+            resolvedColor = "#F2F2F2"
+        }
+
         self.id = id
         self.prefix = prefix
         self.text = storedText
         self.createdAt = created
         self.updatedAt = updated
+        self.textColorHex = resolvedColor
+        // Persist the resolved color so the backfill only happens once.
+        d.set(resolvedColor, forKey: "\(prefix).color")
     }
 
     private func scheduleTextPersist() {
@@ -83,5 +116,6 @@ final class NoteState: ObservableObject, Identifiable {
         static func text(_ p: String) -> String      { "\(p).text" }
         static func createdAt(_ p: String) -> String { "\(p).createdAt" }
         static func updatedAt(_ p: String) -> String { "\(p).updatedAt" }
+        static func color(_ p: String) -> String     { "\(p).color" }
     }
 }

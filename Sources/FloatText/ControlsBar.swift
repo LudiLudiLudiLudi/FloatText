@@ -16,6 +16,11 @@ import AppKit
 /// Focus Mode.
 struct ControlsBar: View {
     @ObservedObject var panel: PanelState
+    /// The active note. The color picker edits THIS note's color (per-note,
+    /// v0.3 follow-up) — font size / alignment / RTL / focus / background
+    /// remain panel-wide. Optional only to survive the rare zero-note
+    /// empty state; the color picker disables itself when nil.
+    var activeNote: NoteState?
 
     var body: some View {
         VStack(spacing: 4) {
@@ -31,15 +36,16 @@ struct ControlsBar: View {
                 .help("Increase font size")
 
                 ColorPicker("", selection: Binding(
-                    get: { Color(nsColor: panel.textColor) },
+                    get: { Color(nsColor: activeNote?.textColor ?? .white) },
                     set: { newValue in
                         let ns = NSColor(newValue).usingColorSpace(.sRGB) ?? .white
-                        panel.textColorHex = ns.hexString
+                        activeNote?.textColorHex = ns.hexString
                     }
                 ))
                 .labelsHidden()
                 .frame(width: 24, height: 18)
-                .help("Text color")
+                .disabled(activeNote == nil)
+                .help("Text color (this note only)")
 
                 Picker("", selection: $panel.alignment) {
                     Image(systemName: "text.alignleft").tag(TextAlignmentOption.left)
@@ -70,9 +76,12 @@ struct ControlsBar: View {
             HStack(spacing: 6) {
                 Image(systemName: "circle.lefthalf.filled")
                     .foregroundStyle(.white.opacity(0.6))
-                Slider(value: $panel.backgroundOpacity, in: 0.0...1.0)
+                // Background strength. Clamped to a readable band so the
+                // panel never becomes too thin to read against the apps
+                // behind it.
+                Slider(value: $panel.backgroundOpacity, in: 0.65...0.98)
                     .controlSize(.mini)
-                    .help("Background opacity")
+                    .help("Background strength")
             }
         }
         .buttonStyle(.borderless)
