@@ -39,15 +39,22 @@ final class PanelController: NSObject, NSWindowDelegate, ObservableObject {
         panel.delegate = self
         panel.setFrame(appState.panel.windowFrame, display: false)
         applyAlwaysOnTop()
-        applyClickThrough()
+        // At init the stored value is already settled (no willSet in flight),
+        // so reading it directly here is correct.
+        applyClickThrough(appState.panel.clickThrough)
     }
 
     private func observeState() {
         appState.$alwaysOnTop
             .sink { [weak self] _ in self?.applyAlwaysOnTop() }
             .store(in: &cancellables)
+        // IMPORTANT: @Published fires its publisher in willSet — the stored
+        // property is NOT yet updated when this closure runs. We must use the
+        // delivered `newValue`, never re-read appState.panel.clickThrough
+        // (that returns the OLD value and inverts every toggle, which caused
+        // the click-through stuck-panel bug).
         appState.panel.$clickThrough
-            .sink { [weak self] _ in self?.applyClickThrough() }
+            .sink { [weak self] newValue in self?.applyClickThrough(newValue) }
             .store(in: &cancellables)
     }
 
@@ -124,15 +131,33 @@ final class PanelController: NSObject, NSWindowDelegate, ObservableObject {
         panel.level = appState.alwaysOnTop ? .floating : .normal
     }
 
-    private func applyClickThrough() {
-        let on = appState.panel.clickThrough
+    /// Apply click-through. `on` MUST be the authoritative new value — passed
+    /// in by the caller, never re-read from appState.panel.clickThrough during
+    /// a willSet-driven Combine callback (see observeState).
+    private func applyClickThrough(_ on: Bool) {
+        // ignoresMouseEvents is an AppKit property; mutate on the main thread.
+        // PanelController is @MainActor and all callers are main-thread, so
+        // this is already safe — kept explicit for clarity.
         panel.ignoresMouseEvents = on
         if !on {
+            // Full interactivity restore: accept events, become key, reactivate
+            // the app, and put the caret back in the text view so the user can
+            // immediately type AND drag the window again.
+            panel.ignoresMouseEvents = false
+            panel.isMovableByWindowBackground = true
             panel.makeKeyAndOrderFront(nil)
+            NSApp.activate(ignoringOtherApps: true)
             if let textView = Self.findTextView(in: panel.contentView) {
                 panel.makeFirstResponder(textView)
             }
         }
+    }
+
+    /// Force click-through fully OFF regardless of current state. Used by the
+    /// menu-bar rescue path so the user can never be trapped.
+    func forceDisableClickThrough() {
+        appState.panel.clickThrough = false   // publishes → applyClickThrough(false)
+        applyClickThrough(false)              // belt-and-suspenders, idempotent
     }
 
     private static func findTextView(in view: NSView?) -> NSTextView? {

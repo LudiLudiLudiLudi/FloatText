@@ -53,13 +53,24 @@ struct MenuBarMenu: View {
 
         Toggle("Always on Top", isOn: $appState.alwaysOnTop)
 
-        Toggle("Click-through Mode", isOn: $appState.panel.clickThrough)
+        // Use a plain Button + explicit controller call rather than a Toggle
+        // bound directly to the @Published, so enabling/disabling always
+        // routes through the controller (which sets ignoresMouseEvents with
+        // the correct value). The label reflects current state.
+        Button(appState.panel.clickThrough ? "Click-through Mode: ON" : "Click-through Mode") {
+            if appState.panel.clickThrough {
+                panelController.forceDisableClickThrough()
+            } else {
+                appState.panel.clickThrough = true
+            }
+        }
 
-        // Rescue: always-available exit even if the panel is in
-        // click-through and unreachable. Surfaces only when needed.
+        // Rescue: always-available hard exit even if the panel is in
+        // click-through and unreachable. Surfaces only when needed and
+        // force-restores interactivity via the controller.
         if appState.panel.clickThrough {
             Button("Disable Click-through") {
-                appState.panel.clickThrough = false
+                panelController.forceDisableClickThrough()
             }
         }
 
