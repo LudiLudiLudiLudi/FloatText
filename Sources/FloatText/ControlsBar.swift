@@ -78,8 +78,9 @@ struct ControlsBar: View {
                     .foregroundStyle(.white.opacity(0.6))
                 // Background strength. Clamped to a readable band so the
                 // panel never becomes too thin to read against the apps
-                // behind it.
-                Slider(value: $panel.backgroundOpacity, in: 0.65...0.98)
+                // behind it, while still giving a clearly noticeable change
+                // across the slider's travel.
+                Slider(value: $panel.backgroundOpacity, in: 0.45...0.95)
                     .controlSize(.mini)
                     .help("Background strength")
             }

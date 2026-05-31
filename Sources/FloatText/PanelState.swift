@@ -32,11 +32,12 @@ final class PanelState: ObservableObject {
             ?? NSRect(x: 200, y: 200, width: 460, height: 520)
         self.fontSize = CGFloat(d.object(forKey: K.fontSize) as? Double ?? 18.0)
         self.textColorHex = d.string(forKey: K.color) ?? "#F2F2F2"
-        // Background strength. Clamp to a readable band: at low values the
-        // tint nearly vanishes and text sits on whatever app is behind,
-        // producing muddy contrast. Floor 0.65; default 0.75.
+        // Background strength. Clamp to a readable band [0.45, 0.95] — wide
+        // enough that the slider produces a clearly visible change, with a
+        // floor that keeps white text legible over the apps behind. Default
+        // 0.75.
         let storedOpacity = d.object(forKey: K.opacity) as? Double ?? 0.75
-        let clamped = max(0.65, min(0.98, storedOpacity))
+        let clamped = max(0.45, min(0.95, storedOpacity))
         self.backgroundOpacity = clamped
         // Persist the clamp now (init assignment does not fire didSet), so a
         // previously-saved out-of-range value is normalized on disk too.

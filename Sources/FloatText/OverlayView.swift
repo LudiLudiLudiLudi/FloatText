@@ -25,19 +25,23 @@ import AppKit
 /// bars are hidden — that absence is the visible state indicator.
 struct OverlayView: View {
     @ObservedObject var appState: AppState
+    /// Observed DIRECTLY (not via appState.panel) — PanelState is a nested
+    /// ObservableObject, so its changes publish on itself, not on appState.
+    /// Without this, slider / focus / click-through changes to panel.* would
+    /// not re-render OverlayView (the background-slider bug).
+    @ObservedObject var panel: PanelState
     var onHide: () -> Void = {}
     var onNewTab: () -> Void = {}
     var onDeleteNote: () -> Void = {}
     var onClearNote: () -> Void = {}
     @State private var isHovering = false
 
+    /// Bottom formatting bar visibility. Independent of click-through now —
+    /// click-through must NOT restructure the panel (issue 2).
     private var showFormatControls: Bool {
-        if appState.panel.clickThrough { return false }
-        if !appState.panel.focusMode { return true }
+        if !panel.focusMode { return true }
         return isHovering
     }
-
-    private var showTopHeader: Bool { !appState.panel.clickThrough }
 
     private var activeNote: NoteState? {
         appState.notes.first { $0.id == appState.activeNoteID }
@@ -46,17 +50,17 @@ struct OverlayView: View {
     var body: some View {
         ZStack {
             Color.black
-                .opacity(appState.panel.backgroundOpacity)
+                .opacity(panel.backgroundOpacity)
                 .ignoresSafeArea()
 
             VStack(spacing: 0) {
-                if showTopHeader {
-                    topHeader
-                }
+                // Header (actions + tabs) is ALWAYS shown — including during
+                // click-through — so the active tab/note stays understandable.
+                topHeader
 
                 Group {
                     if let note = activeNote {
-                        NoteEditor(note: note, panel: appState.panel)
+                        NoteEditor(note: note, panel: panel)
                             .id(note.id) // recreate RTLTextView per tab
                     } else {
                         // Empty state. Shouldn't normally happen — the
@@ -68,17 +72,15 @@ struct OverlayView: View {
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .padding(.horizontal, 4)
-                .padding(.top, showTopHeader ? 0 : 8)
 
                 if showFormatControls {
-                    ControlsBar(panel: appState.panel, activeNote: activeNote)
+                    ControlsBar(panel: panel, activeNote: activeNote)
                         .transition(.move(edge: .bottom).combined(with: .opacity))
                 }
             }
         }
         .onHover { isHovering = $0 }
         .animation(.easeInOut(duration: 0.15), value: showFormatControls)
-        .animation(.easeInOut(duration: 0.15), value: showTopHeader)
     }
 
     /// Two visually distinct rows so navigation (tabs) and actions
@@ -109,7 +111,25 @@ struct OverlayView: View {
 
             Spacer(minLength: 0)
 
-            // RIGHT: safe panel/note actions.
+            // CENTER-ISH: subtle click-through indicator. The panel ignores
+            // mouse events while this is on, so the buttons here can't be
+            // clicked — recovery is via the menu bar (Click-through Mode off
+            // / Disable Click-through). We keep the header visible so the
+            // active tab stays understandable.
+            if panel.clickThrough {
+                Text("click-through")
+                    .font(.system(size: 9, weight: .semibold))
+                    .foregroundStyle(.yellow.opacity(0.9))
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 1)
+                    .background(Color.yellow.opacity(0.15))
+                    .cornerRadius(3)
+                    .padding(.trailing, 8)
+                    .help("Click-through is ON — clicks pass to the app behind. Turn it off from the menu bar.")
+            }
+
+            // RIGHT: safe panel/note actions. Dimmed while click-through is
+            // on to signal they're not interactive right now.
             HStack(spacing: 12) {
                 Button(action: onHide) {
                     Image(systemName: "eye.slash")
@@ -124,6 +144,7 @@ struct OverlayView: View {
                 .foregroundStyle(.white.opacity(0.85))
                 .disabled(activeNote == nil)
             }
+            .opacity(panel.clickThrough ? 0.4 : 1.0)
         }
         .buttonStyle(.borderless)
         .controlSize(.small)

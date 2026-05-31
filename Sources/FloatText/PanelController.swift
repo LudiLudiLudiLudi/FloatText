@@ -24,6 +24,7 @@ final class PanelController: NSObject, NSWindowDelegate, ObservableObject {
         let host = NSHostingView(
             rootView: OverlayView(
                 appState: appState,
+                panel: appState.panel,
                 onHide: { [weak self] in self?.hide() },
                 onNewTab: { [weak self] in self?.newTab() },
                 onDeleteNote: { [weak self] in self?.deleteActiveNote() },
