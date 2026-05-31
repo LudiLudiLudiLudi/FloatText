@@ -81,42 +81,65 @@ struct OverlayView: View {
         .animation(.easeInOut(duration: 0.15), value: showTopHeader)
     }
 
+    /// Two visually distinct rows so navigation (tabs) and actions
+    /// (delete / hide / clear) are never confused:
+    ///   Row 1 — action header (toolbar look): destructive Delete on the
+    ///           left, safe Hide + Clear on the right.
+    ///   Row 2 — tab strip only, with a trailing + to add a tab.
     private var topHeader: some View {
+        VStack(spacing: 0) {
+            actionHeader
+            Divider()
+                .overlay(Color.white.opacity(0.12))
+            tabRow
+        }
+    }
+
+    /// Row 1: actions. Given a faint toolbar background + bottom divider so
+    /// it reads as a control strip, not a row of tabs.
+    private var actionHeader: some View {
         HStack(spacing: 0) {
-            // LEFT: destructive Delete, visually isolated.
+            // LEFT: destructive Delete, red, isolated.
             Button(action: confirmDelete) {
                 Image(systemName: "trash")
             }
             .help("Delete this note (text will be permanently removed)")
-            .foregroundStyle(.red.opacity(0.85))
+            .foregroundStyle(.red.opacity(0.9))
             .disabled(activeNote == nil)
 
-            // CENTER: tab strip. Takes flexible width.
-            TabBar(
-                appState: appState,
-                onSelectNote: { appState.setActiveNote($0) },
-                onNewTab: onNewTab
-            )
-            .padding(.horizontal, 6)
+            Spacer(minLength: 0)
 
-            // RIGHT: hide + clear (safer actions).
-            HStack(spacing: 8) {
+            // RIGHT: safe panel/note actions.
+            HStack(spacing: 12) {
                 Button(action: onHide) {
                     Image(systemName: "eye.slash")
                 }
                 .help("Hide the panel (text is preserved; reopen via Show Panel)")
+                .foregroundStyle(.white.opacity(0.85))
 
                 Button(action: confirmClear) {
                     Image(systemName: "eraser.fill")
                 }
                 .help("Clear the text of the current note (the note itself stays)")
+                .foregroundStyle(.white.opacity(0.85))
                 .disabled(activeNote == nil)
             }
         }
         .buttonStyle(.borderless)
         .controlSize(.small)
-        .foregroundStyle(.white.opacity(0.85))
-        .padding(.horizontal, 8)
+        .padding(.horizontal, 10)
+        .padding(.vertical, 5)
+        .background(Color.white.opacity(0.06))
+    }
+
+    /// Row 2: tabs only.
+    private var tabRow: some View {
+        TabBar(
+            appState: appState,
+            onSelectNote: { appState.setActiveNote($0) },
+            onNewTab: onNewTab
+        )
+        .padding(.horizontal, 6)
         .padding(.vertical, 4)
     }
 
