@@ -14,14 +14,19 @@ enum TextAlignmentOption: String, CaseIterable, Codable {
     }
 }
 
-/// App-level state.
+/// App-level state for the v0.3 single tabbed panel.
 ///
-/// Holds *global* settings (alwaysOnTop, hideDockIcon, launchAtLogin) and
-/// the list of windows. Per-window state lives in `WindowState`.
+/// Holds global settings (alwaysOnTop, hideDockIcon, launchAtLogin), the
+/// panel-wide visual state (`panel`), and the list of note tabs (`notes` +
+/// `activeNoteID`). Per-note state lives in `NoteState`; panel-wide visual
+/// state in `PanelState`.
 ///
-/// Commit 1 of the multi-window refactor: only one window is created in
-/// practice. The collection structure is in place but unused beyond
-/// `windows.first`. Subsequent commits add real multi-window plumbing.
+/// Migration chain on launch (all non-destructive — older keys are read,
+/// never deleted, so prior FloatText versions still work against the same
+/// UserDefaults domain):
+///   1. migrateLegacyKeysIfNeeded()   v0.1 flat keys → v0.2 `ft.window.<uuid>.*`
+///   2. performV3TakeoverIfNeeded()   v0.2 windows → v0.3 `ft.note.<uuid>.*` tabs
+///   3. loadV3State()                 build the in-memory model from v0.3 keys
 @MainActor
 final class AppState: ObservableObject {
     // MARK: Global properties
@@ -29,16 +34,7 @@ final class AppState: ObservableObject {
     @Published var hideDockIcon: Bool { didSet { ud.set(hideDockIcon, forKey: K.hideDockIcon) } }
     @Published var launchAtLogin: Bool { didSet { ud.set(launchAtLogin, forKey: K.launchAtLogin) } }
 
-    // MARK: Windows (v0.2, still drives the visible UI as of Commit 1)
-    @Published var windows: [WindowState] = []
-
-    // MARK: v0.3 dormant model
-    //
-    // Added in Commit 1 of the tabbed-panel migration. These properties are
-    // populated from a one-shot v0.2 → v0.3 migration but are NOT consumed
-    // by the visible UI yet — that switches in Commit 2. Holding them on
-    // AppState now lets the migration run in a single place and lets future
-    // PanelController / TabBar code read them without further plumbing.
+    // MARK: Panel + notes
     @Published var panel: PanelState
     @Published var notes: [NoteState] = []
     @Published var activeNoteID: UUID?
@@ -52,25 +48,22 @@ final class AppState: ObservableObject {
         self.alwaysOnTop = d.object(forKey: K.alwaysOnTop) as? Bool ?? true
         self.hideDockIcon = d.object(forKey: K.hideDockIcon) as? Bool ?? false
         self.launchAtLogin = d.object(forKey: K.launchAtLogin) as? Bool ?? false
-        // Placeholder PanelState (defaults read from UD; may be empty pre-migration).
-        // Re-instantiated after the v3 migration writes ft.panel.* keys.
+        // Placeholder; re-instantiated by loadV3State() after migration writes
+        // ft.panel.* keys.
         self.panel = PanelState()
 
-        migrateLegacyKeysIfNeeded()      // v1 → v2 (existing)
-        loadWindows()                    // populates windows[] from v2 keys
-        migrateLegacyToV3IfNeeded()      // v2 → v3, dormant snapshot (Commit 1)
-        performV3TakeoverIfNeeded()      // v2 → v3 refresh on first tabbed UI launch (Commit 2)
-        loadV3State()                    // populate panel / notes / activeNoteID from v3 keys
+        migrateLegacyKeysIfNeeded()      // v0.1 flat keys → v0.2 ft.window.<uuid>.*
+        performV3TakeoverIfNeeded()      // v0.2 → v0.3 tabs (sole v3 path)
+        loadV3State()                    // build panel / notes / activeNoteID
     }
 
-    // MARK: Migration
+    // MARK: v0.1 → v0.2 migration (non-destructive)
 
-    /// One-time, non-destructive migration from the v1 flat-key schema (`ft.text`,
-    /// `ft.fontSize`, etc.) to the v2 per-window schema (`ft.window.<uuid>.*`).
-    ///
-    /// Legacy keys are NOT deleted — running an older FloatText binary after this
-    /// runs will still see its previous state. A later cleanup release can
-    /// remove them once we're sure no one is rolling back.
+    /// One-time, non-destructive migration from the v0.1 flat-key schema
+    /// (`ft.text`, `ft.fontSize`, …) to the v0.2 per-window schema
+    /// (`ft.window.<uuid>.*`). Pure UserDefaults manipulation. Legacy keys are
+    /// NOT deleted. The v0.3 takeover then reads the resulting `ft.window.*`
+    /// keys.
     private func migrateLegacyKeysIfNeeded() {
         if ud.bool(forKey: K.migrationV2Completed) { return }
 
@@ -83,7 +76,6 @@ final class AppState: ObservableObject {
             let id = UUID()
             let prefix = "ft.window.\(id.uuidString)"
 
-            // Copy each legacy key to the new schema (only if present).
             if let v = ud.string(forKey: legacy.text)         { ud.set(v, forKey: "\(prefix).text") }
             if let v = ud.object(forKey: legacy.fontSize)     { ud.set(v, forKey: "\(prefix).fontSize") }
             if let v = ud.string(forKey: legacy.textColorHex) { ud.set(v, forKey: "\(prefix).color") }
@@ -101,132 +93,24 @@ final class AppState: ObservableObject {
         ud.set(true, forKey: K.migrationV2Completed)
     }
 
-    // MARK: Window loading
+    // MARK: v0.2 → v0.3 takeover (non-destructive)
 
-    private func loadWindows() {
-        let ids = (ud.array(forKey: K.windows) as? [String] ?? []).compactMap { UUID(uuidString: $0) }
-        for id in ids {
-            windows.append(WindowState(id: id))
-        }
-        // Seed exactly one default window if nothing exists yet (fresh install
-        // or a UserDefaults purge between runs).
-        if windows.isEmpty {
-            let seeded = WindowState(id: UUID(), useSeedText: true)
-            windows.append(seeded)
-            persistWindowIDs()
-        }
-    }
-
-    /// Append a new WindowState and persist the updated id list.
-    /// Called by WindowManager.newWindow().
-    func addWindow(_ win: WindowState) {
-        windows.append(win)
-        persistWindowIDs()
-    }
-
-    /// Remove a window from the active set. Non-destructive by default:
-    /// updates the in-memory `windows` array and the persisted `ft.windows`
-    /// list so the window does NOT auto-reopen on next launch, but the
-    /// per-window keys (`ft.window.<id>.text`, etc.) are LEFT IN PLACE.
+    /// Build the v0.3 tab model from the v0.2 `ft.windows` / `ft.window.<uuid>.*`
+    /// keys: each window becomes a note tab. Reads UserDefaults directly — does
+    /// not need the old in-memory WindowState. Gated on
+    /// `ft.migration.v3.takeoverCompleted` so it runs at most once.
     ///
-    /// This is the "Close Window" semantic. A future destructive
-    /// "Delete Window" would pass `keepPersistedState: false` and remove
-    /// the per-window keys too.
-    func removeWindow(id: UUID, keepPersistedState: Bool = true) {
-        windows.removeAll { $0.id == id }
-        persistWindowIDs()
-
-        if !keepPersistedState {
-            let prefix = "ft.window.\(id.uuidString)"
-            let suffixes = [".text", ".fontSize", ".color", ".opacity",
-                            ".alignment", ".isRTL", ".clickThrough",
-                            ".focusMode", ".frame"]
-            for suffix in suffixes {
-                ud.removeObject(forKey: prefix + suffix)
-            }
-        }
-    }
-
-    /// Re-write `ft.windows` to match the current `windows` array. Internal
-    /// because future commits (Close Window, Delete Window) will mutate the
-    /// list too.
-    func persistWindowIDs() {
-        ud.set(windows.map { $0.id.uuidString }, forKey: K.windows)
-    }
-
-    // MARK: v0.2 → v0.3 migration (dormant model, non-destructive)
-    //
-    // Reads from the already-loaded windows[] and writes the new ft.panel.*
-    // and ft.note.<uuid>.* schemas. Strict write order so a crash mid-flight
-    // never leaves ft.notes pointing at note keys that don't exist yet:
-    //
-    //   1. per-note keys for every window  (text + createdAt + updatedAt)
-    //   2. ft.notes                         (UUID array preserves window order)
-    //   3. ft.activeNoteID                  (first window's id)
-    //   4. ft.panel.*                       (first window's visual settings,
-    //                                        clickThrough always forced false)
-    //   5. ft.migration.v3.completed = true
-    //
-    // v0.2 keys (ft.windows, ft.window.<uuid>.*) are NOT touched — running
-    // an older binary against the same defaults domain still works.
-    private func migrateLegacyToV3IfNeeded() {
-        if ud.bool(forKey: K.migrationV3Completed) { return }
-
-        let sources = self.windows  // already loaded by loadWindows()
-
-        if !sources.isEmpty {
-            let nowEpoch = Date().timeIntervalSince1970
-
-            // 1. Per-note keys first.
-            for win in sources {
-                let prefix = "ft.note.\(win.id.uuidString)"
-                ud.set(win.text, forKey: "\(prefix).text")
-                ud.set(nowEpoch, forKey: "\(prefix).createdAt")
-                ud.set(nowEpoch, forKey: "\(prefix).updatedAt")
-            }
-
-            // 2. ft.notes (array order = window order).
-            ud.set(sources.map { $0.id.uuidString }, forKey: K.notes)
-
-            // 3. ft.activeNoteID = first window's id.
-            ud.set(sources[0].id.uuidString, forKey: K.activeNoteID)
-
-            // 4. ft.panel.* from first window's visual settings.
-            let first = sources[0]
-            ud.set(NSStringFromRect(first.windowFrame), forKey: PanelState.K.frame)
-            ud.set(Double(first.fontSize), forKey: PanelState.K.fontSize)
-            ud.set(first.textColorHex, forKey: PanelState.K.color)
-            ud.set(first.backgroundOpacity, forKey: PanelState.K.opacity)
-            ud.set(first.alignment.rawValue, forKey: PanelState.K.alignment)
-            ud.set(first.isRTL, forKey: PanelState.K.isRTL)
-            ud.set(first.focusMode, forKey: PanelState.K.focusMode)
-            // Always start panel.clickThrough = false so the app cannot
-            // relaunch in a trapped state.
-            ud.set(false, forKey: PanelState.K.clickThrough)
-        } else {
-            // No source windows. Still ensure panel.clickThrough = false so
-            // the new model never starts trapped — even on a fresh install
-            // where this key wouldn't exist yet.
-            ud.set(false, forKey: PanelState.K.clickThrough)
-        }
-
-        // 5. ONLY now mark migration complete.
-        ud.set(true, forKey: K.migrationV3Completed)
-    }
-
-    /// v0.3 takeover: refresh on the first launch of the tabbed UI. The
-    /// Commit-1 snapshot may be stale (the user may have edited text in the
-    /// v0.2 UI between Commit 1 and Commit 2), so this step copies the
-    /// LATEST `ft.window.<uuid>.text` into `ft.note.<uuid>.text` before
-    /// the tabbed UI is shown for the first time.
+    /// Strict write order so a crash mid-flight never leaves `ft.notes` pointing
+    /// at note keys that don't exist yet:
+    ///   1. per-note keys (text + createdAt + updatedAt) for every window
+    ///   2. ft.notes        (UUID array, preserves window order)
+    ///   3. ft.activeNoteID (kept if still valid, else first)
+    ///   4. ft.panel.*      (from the first window's visuals)
+    ///   5. ft.panel.clickThrough = false (anti-trap)
+    ///   6. ft.migration.v3.takeoverCompleted = true
     ///
-    /// Gated on `ft.migration.v3.takeoverCompleted` so it runs at most once.
-    /// Non-destructive: v0.2 keys are READ, never modified or deleted.
-    ///
-    /// Strict write order is the same as the dormant migration. The flag is
-    /// only set after all per-note keys, ft.notes, ft.activeNoteID,
-    /// ft.panel.*, and ft.panel.clickThrough=false have been written. A
-    /// crash anywhere before the flag means the next launch retries safely.
+    /// v0.2 keys (`ft.windows`, `ft.window.<uuid>.*`) are READ, never modified
+    /// or deleted — they remain as a rollback / data-safety record.
     private func performV3TakeoverIfNeeded() {
         if ud.bool(forKey: K.migrationV3TakeoverCompleted) { return }
 
@@ -236,9 +120,7 @@ final class AppState: ObservableObject {
         if !sourceUUIDs.isEmpty {
             let nowEpoch = Date().timeIntervalSince1970
 
-            // 1. Per-note keys: refresh text from LATEST v0.2 text. Preserve
-            //    Commit-1's createdAt if it exists (best timestamp we have).
-            //    Always bump updatedAt.
+            // 1. Per-note keys from the latest v0.2 text.
             for id in sourceUUIDs {
                 let v2Prefix = "ft.window.\(id.uuidString)"
                 let v3Prefix = "ft.note.\(id.uuidString)"
@@ -250,13 +132,10 @@ final class AppState: ObservableObject {
                 ud.set(nowEpoch, forKey: "\(v3Prefix).updatedAt")
             }
 
-            // 2. ft.notes: overwrite with current ft.windows (handles
-            //    additions / deletions / reorderings made after Commit 1).
+            // 2. ft.notes preserves window order.
             ud.set(sourceUUIDs.map { $0.uuidString }, forKey: K.notes)
 
-            // 3. ft.activeNoteID: keep the existing value if it still points
-            //    at one of the current source UUIDs; otherwise fall back to
-            //    the first one.
+            // 3. ft.activeNoteID: keep if still valid, else first.
             let currentActive = ud.string(forKey: K.activeNoteID).flatMap { UUID(uuidString: $0) }
             if let active = currentActive, sourceUUIDs.contains(active) {
                 // unchanged
@@ -264,8 +143,7 @@ final class AppState: ObservableObject {
                 ud.set(sourceUUIDs[0].uuidString, forKey: K.activeNoteID)
             }
 
-            // 4. ft.panel.*: refresh from the LATEST first-window visuals.
-            //    Catches any visual tweaks the user made after Commit 1.
+            // 4. ft.panel.* from the first window's visuals.
             let firstID = sourceUUIDs[0]
             let v2Prefix = "ft.window.\(firstID.uuidString)"
             if let v = ud.string(forKey: "\(v2Prefix).frame")     { ud.set(v, forKey: PanelState.K.frame) }
@@ -275,21 +153,31 @@ final class AppState: ObservableObject {
             if let v = ud.string(forKey: "\(v2Prefix).alignment") { ud.set(v, forKey: PanelState.K.alignment) }
             if let v = ud.object(forKey: "\(v2Prefix).isRTL")     { ud.set(v, forKey: PanelState.K.isRTL) }
             if let v = ud.object(forKey: "\(v2Prefix).focusMode") { ud.set(v, forKey: PanelState.K.focusMode) }
+        } else if ud.array(forKey: K.notes) == nil {
+            // Fresh install (no v0.2 windows AND no v0.3 notes yet): seed one
+            // note with the Hebrew conversation template so first-run feel is
+            // unchanged from earlier versions.
+            let id = UUID()
+            let nowEpoch = Date().timeIntervalSince1970
+            let prefix = "ft.note.\(id.uuidString)"
+            ud.set(Self.seedText, forKey: "\(prefix).text")
+            ud.set(nowEpoch, forKey: "\(prefix).createdAt")
+            ud.set(nowEpoch, forKey: "\(prefix).updatedAt")
+            ud.set([id.uuidString], forKey: K.notes)
+            ud.set(id.uuidString, forKey: K.activeNoteID)
         }
 
-        // 5. ALWAYS force clickThrough = false. Same anti-trap guarantee as
-        //    Commit 1, preserved through takeover. Applies even on a fresh
-        //    install with no source UUIDs.
+        // 5. Anti-trap: never start in click-through.
         ud.set(false, forKey: PanelState.K.clickThrough)
 
-        // 6. Mark takeover complete ONLY after everything above succeeded.
+        // 6. Mark complete only after everything above succeeded.
         ud.set(true, forKey: K.migrationV3TakeoverCompleted)
     }
 
-    // MARK: Note CRUD (used by PanelController in Commit 2)
+    // MARK: Note CRUD (used by PanelController)
 
-    /// Set the active note and persist `ft.activeNoteID`. Passing nil
-    /// removes the key. Safe to call when the id isn't in `notes`.
+    /// Set the active note and persist `ft.activeNoteID`. Passing nil removes
+    /// the key. Safe to call when the id isn't in `notes`.
     func setActiveNote(_ id: UUID?) {
         activeNoteID = id
         if let id = id {
@@ -299,10 +187,8 @@ final class AppState: ObservableObject {
         }
     }
 
-    /// Append a NoteState, persist `ft.notes`, and make it active.
-    /// The caller is responsible for having seeded `ft.note.<id>.*` keys
-    /// before calling — PanelController.newTab does this in the correct
-    /// order (per-note keys first, then this call).
+    /// Append a NoteState, persist `ft.notes`, and make it active. The caller
+    /// seeds `ft.note.<id>.*` keys first (PanelController.newTab does this).
     func appendNote(_ note: NoteState) {
         notes.append(note)
         ud.set(notes.map { $0.id.uuidString }, forKey: K.notes)
@@ -310,10 +196,10 @@ final class AppState: ObservableObject {
     }
 
     /// Permanently delete a note: drop from `notes[]`, rewrite `ft.notes`,
-    /// purge `ft.note.<id>.*` keys. If the deleted note was active, pick
-    /// the previous note (or first remaining) as the new active.
-    /// Returns the new active id (nil if `notes` is now empty — caller
-    /// should typically follow up with a fresh `appendNote`).
+    /// purge `ft.note.<id>.*` keys. If the deleted note was active, pick the
+    /// previous note (or first remaining) as the new active. Returns the new
+    /// active id (nil if `notes` is now empty — caller should follow up with a
+    /// fresh `appendNote`).
     @discardableResult
     func deleteNote(id: UUID) -> UUID? {
         guard let idx = notes.firstIndex(where: { $0.id == id }) else { return activeNoteID }
@@ -323,7 +209,7 @@ final class AppState: ObservableObject {
         ud.set(notes.map { $0.id.uuidString }, forKey: K.notes)
 
         let prefix = "ft.note.\(id.uuidString)"
-        for suffix in [".text", ".createdAt", ".updatedAt"] {
+        for suffix in [".text", ".createdAt", ".updatedAt", ".color"] {
             ud.removeObject(forKey: prefix + suffix)
         }
 
@@ -338,8 +224,7 @@ final class AppState: ObservableObject {
         return activeNoteID
     }
 
-    /// Refresh in-memory v3 model from UserDefaults after migration (or on a
-    /// returning launch where migration was already done previously).
+    /// Build the in-memory model from the v0.3 UserDefaults keys.
     private func loadV3State() {
         // Re-instantiate PanelState so it reads the freshly-written ft.panel.*
         // values (the placeholder created in init() ran before migration).
@@ -364,12 +249,10 @@ final class AppState: ObservableObject {
         static let alwaysOnTop = "ft.alwaysOnTop"
         static let hideDockIcon = "ft.hideDockIcon"
         static let launchAtLogin = "ft.launchAtLogin"
-        static let windows = "ft.windows"
+        static let windows = "ft.windows"                       // v0.2, read-only now
         static let migrationV2Completed = "ft.migration.v2.completed"
-        // v0.3
         static let notes = "ft.notes"
         static let activeNoteID = "ft.activeNoteID"
-        static let migrationV3Completed = "ft.migration.v3.completed"
         static let migrationV3TakeoverCompleted = "ft.migration.v3.takeoverCompleted"
     }
 
@@ -384,9 +267,28 @@ final class AppState: ObservableObject {
         static let focusMode = "ft.focusMode"
         static let windowFrame = "ft.windowFrame"
     }
+
+    /// First-run seed for a brand-new install (no prior FloatText data).
+    static let seedText = """
+    פתיחה
+    • שלום, תודה שהצטרפת. נדבר היום על …
+
+    נקודות עיקריות
+    • …
+    • …
+    • …
+
+    שאלות המשך
+    • …
+    • …
+
+    תזכורת לסיום
+    • לסכם את ההסכמות
+    • לסגור על צעד הבא
+    """
 }
 
-// MARK: - NSColor hex helpers (used by WindowState too)
+// MARK: - NSColor hex helpers
 
 extension NSColor {
     convenience init?(hex: String) {

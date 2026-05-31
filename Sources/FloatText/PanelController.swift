@@ -2,10 +2,8 @@ import AppKit
 import SwiftUI
 import Combine
 
-/// Single floating panel + tab routing. Replaces the v0.2
-/// `WindowManager` + per-window `FloatingPanelController` for the visible
-/// UI in Commit 2 of the tabbed-panel migration. The old files remain on
-/// disk but no one instantiates them anymore.
+/// Single floating panel + tab routing (v0.3). Owns the one FloatingPanel,
+/// the click-through exit window, and the note-tab actions.
 @MainActor
 final class PanelController: NSObject, NSWindowDelegate, ObservableObject {
     let appState: AppState

@@ -6,7 +6,9 @@ Native Swift + SwiftUI + AppKit. `NSTextView` under the hood for stable Hebrew /
 
 ## Status
 
-MVP (v0.2). Local builds only — no signing, no notarization, no App Store. Runs on macOS 14 Sonoma or later. See [CHANGELOG.md](CHANGELOG.md) for what's new.
+MVP (v0.3). Local builds only — no signing, no notarization, no App Store. Runs on macOS 14 Sonoma or later. See [CHANGELOG.md](CHANGELOG.md) for what's new.
+
+**v0.3 in one line:** a single floating panel with internal note **tabs** — replacing the earlier multiple-floating-windows model, which became cluttered with several translucent overlays on screen at once.
 
 ## Screenshot
 
@@ -16,11 +18,12 @@ MVP (v0.2). Local builds only — no signing, no notarization, no App Store. Run
 
 - A small translucent floating panel that stays above other apps
 - A quick place to read from, copy from, and edit during a live conversation
+- Multiple notes as tabs inside one panel
 - Local-only — nothing leaves your machine
 
 ## What FloatText is not
 
-- Not a note-taking app
+- Not a note-taking database
 - Not a document editor
 - Not a markdown renderer
 - Not synced — no iCloud, no accounts, no cloud
@@ -28,88 +31,82 @@ MVP (v0.2). Local builds only — no signing, no notarization, no App Store. Run
 
 ## Features
 
-- **Multiple windows.** Open as many floating panels as you need; each has its own text, frame, font size, color, alignment, and RTL state.
+- **One floating panel with note tabs.** Switch between notes via a tab strip; each tab has its own text.
+- **Per-note text color.** Each tab can have its own text color, shown as a color dot on the tab. The active tab is highlighted (filled background + border + bold label).
 - Frameless floating panel that stays above other windows (Always on Top toggle)
 - Editable multiline `NSTextView` with Hebrew / RTL support
 - All smart-quote / auto-substitution / auto-correct disabled — keeps Hebrew punctuation stable
-- Standard copy / paste / cut / undo
-- Text alignment: left / center / right
-- RTL ↔ LTR toggle
-- Font size + / −
-- Text color picker
-- Background opacity slider — real transparency, see through to the windows beneath
-- Focus Mode — hides the controls bar; text stays editable; hover the panel to reveal controls
-- Click-through Mode — clicks pass through to apps beneath (reversible from the menu bar icon; see Known limitations)
-- Menu bar icon with Show All / Hide All / New / Hide / Delete / Clear, plus mode toggles and Quit
+- Standard copy / paste / cut / undo (each tab has its own undo stack)
+- Text alignment: left / center / right (panel-wide)
+- RTL ↔ LTR toggle (panel-wide)
+- Font size + / − (panel-wide)
+- **Background strength** slider — controls the translucent backing layer from noticeably transparent to nearly solid; text always stays fully opaque
+- Focus Mode — hides the bottom formatting bar; the tab header stays; text stays editable; hover to reveal the formatting bar
+- Click-through Mode — clicks pass through to the apps beneath; exits via an on-screen **"Exit click-through"** control or the menu bar (see below)
+- Menu bar icon with Show / Hide Panel, New Tab, Delete Note, Clear Note, plus mode toggles and Quit
 - Hide Dock Icon toggle
 - Launch at Login toggle
-- Local persistence of every window's text, frame, font size, color, opacity, alignment, RTL state, and toggles
+- Local persistence of every note's text + color, plus the panel's frame, font size, alignment, RTL state, opacity, and toggles
 - First-launch seed text with a short Hebrew conversation structure
 
-## Window management
+## Notes & tabs
 
-FloatText distinguishes carefully between **non-destructive** and **destructive** window actions. Nothing destructive happens without an explicit confirmation dialog.
+FloatText distinguishes carefully between **non-destructive** and **destructive** actions. Nothing destructive happens without an explicit confirmation dialog.
 
 ### Action semantics
 
-| Action | Destructive? | What happens to the panel | What happens to text & state | How to restore |
+| Action | Destructive? | What happens to the panel | What happens to text / state | How to restore |
 |---|---|---|---|---|
-| **Hide Window** | No | Disappears from the screen | All preserved | Show All Windows |
-| **Hide All Windows** | No | Every visible panel `orderOut` | All preserved | Show All Windows |
-| **Show All Windows** | No | Reveals every hidden panel; if there are zero windows, creates one new blank panel so you can never reach a dead end | n/a | n/a |
-| **New Window** | No | A fresh blank panel appears | New empty `WindowState` | n/a |
-| **Clear Note** | Yes (text only) | Panel stays open at same size / position | Only the text is removed; color, opacity, alignment, RTL, frame all preserved | Cannot — but the window itself is intact |
-| **Delete Window** | Yes (window) | Panel disappears and is removed from the active set | Text, frame, color, opacity, alignment, RTL — all permanently removed | Cannot — gone |
+| **Hide Panel** | No | The whole panel disappears from screen | All notes & settings preserved | Show Panel |
+| **Show Panel** | No | Reveals the panel; creates a blank note if somehow none exist | n/a | n/a |
+| **New Tab** | No | A fresh blank note tab appears and becomes active | New empty note (inherits the active note's color) | n/a |
+| **Switch Tab** | No | The editor shows the clicked note | unchanged | n/a |
+| **Clear Note** | **Yes** (text only) | Tab stays; text is wiped | Only the active note's text is removed; its color and the panel settings are kept | Cannot — but the tab itself remains |
+| **Delete Note** | **Yes** (note) | Tab is removed | The active note's text + color are permanently removed | Cannot — gone |
 
-### In-window top controls
+Delete Note and Clear Note **both require a confirmation dialog**. If you delete the last remaining note, a fresh blank note is created so the panel always has at least one tab.
 
-The top of each panel has a small split header. Destructive on the left, safer on the right:
+### Top area — two rows
 
-| Side | Icon | Action |
-|---|---|---|
-| Left | 🗑 `trash` (red) | **Delete Window** — opens a confirmation dialog. Cancel by default. |
-| Right | ➕ `plus` | **New Window** |
-| Right | 👁 `eye.slash` | **Hide Window** — safe, no confirmation |
-| Right | 🧹 `eraser.fill` | **Clear Note** — opens a confirmation dialog before wiping just the text |
+1. **Action header** (a toolbar strip): destructive **Delete Note** (🗑, red) on the left; safe **Hide Panel** (👁) and **Clear Note** (🧹) on the right. Both 🗑 and 🧹 confirm first.
+2. **Tab strip**: the note tabs (each with a color dot), plus a trailing **+** to create a new tab.
 
-The top header stays visible in Focus Mode (the bottom formatting bar hides; window-management stays reachable). When Click-through Mode is on the entire panel ignores mouse events, so both bars are hidden — that absence is the visible state indicator. Recover via the menu bar.
+The top area stays visible in Focus Mode and during Click-through, so you always know which note is active.
 
 ### Bottom controls bar (formatting / reading only)
 
-The bottom bar carries no window-management buttons — only:
-
 - A− / A+ font size
-- Text color picker
+- Text color picker (**applies to the active note only**)
 - Alignment (left / center / right)
 - RTL / LTR toggle
 - Focus Mode toggle
-- Background opacity slider
+- Background strength slider (range **0.35 … 1.0**)
+
+### Click-through Mode
+
+Click-through makes the panel pass mouse clicks to whatever app is behind it. Because `NSPanel.ignoresMouseEvents` is a window-level property, no control inside the main panel can be clicked while it's on — so FloatText shows a **separate, always-interactive "Exit click-through" control window** at the panel's top-right corner. Click it to turn click-through off and restore normal interaction. The menu bar item **Disable Click-through** does the same and is always available. There is no trap state.
 
 ### Menu bar
 
 ```
-Show All Windows                       ⌘⇧H
-Hide All Windows
+Show Panel / Hide Panel                ⌘⇧H
 ─────────
-New Window                             ⌘N
-Hide Current Window                    ⌘W
-Delete Current Window…                 (NSAlert confirmation)
-Clear Current Note…                    (NSAlert confirmation)
+New Tab                                ⌘T
+Delete Note…                           (confirmation)
+Clear Note…                            (confirmation)
 ─────────
-Focus Mode  (per active window)        ⌘⇧F
-Always on Top  (global)
-Click-through Mode  (per active window)
-Disable Click-through (All Windows)    (appears only when needed)
+Focus Mode                             ⌘⇧F
+Always on Top
+Click-through Mode
+Disable Click-through                  (appears when click-through is on)
 ─────────
-RTL  (per active window)               ⌘⇧R
+RTL                                    ⌘⇧R
 ─────────
-Hide Dock Icon  (global)
-Launch at Login  (global)
+Hide Dock Icon
+Launch at Login
 ─────────
 Quit FloatText                         ⌘Q
 ```
-
-Per-window menu items operate on the **active window** — the most recently focused / clicked panel. Global items affect the whole app.
 
 ## Install
 
@@ -133,8 +130,8 @@ The script builds in Release, stops any running FloatText, replaces an existing 
 ```bash
 ./scripts/uninstall.sh             # remove from ~/Applications, keep settings
 ./scripts/uninstall.sh --system    # remove from /Applications (sudo)
-./scripts/uninstall.sh --purge     # also delete UserDefaults (saved text,
-                                   # window positions, colors, font sizes, etc.)
+./scripts/uninstall.sh --purge     # also delete UserDefaults (saved notes,
+                                   # panel position, colors, font size, etc.)
 ```
 
 `--system` and `--purge` may be combined.
@@ -155,23 +152,31 @@ A `Package.swift` is included for `swift build` / `swift run`, but those produce
 
 ## Keyboard shortcuts
 
-- ⌘⇧H — Show All Windows
-- ⌘N  — New Window
-- ⌘W  — Hide Current Window
-- ⌘⇧F — Toggle Focus Mode (active window)
-- ⌘⇧R — Toggle RTL / LTR (active window)
+- ⌘⇧H — Show / Hide Panel
+- ⌘T  — New Tab
+- ⌘⇧F — Toggle Focus Mode
+- ⌘⇧R — Toggle RTL / LTR
 - ⌘Q  — Quit
 - Standard ⌘C / ⌘V / ⌘X / ⌘Z / ⌘A inside the text view
 
-Delete Current Window and Clear Current Note are intentionally without shortcuts and require confirmation.
+Delete Note and Clear Note are intentionally without shortcuts and require confirmation.
+
+## Data & migration
+
+FloatText has migrated its on-disk format twice, always **non-destructively** — older keys are read, never deleted, so previous versions still work against the same `UserDefaults` domain and your data is never lost:
+
+- **v0.1 → v0.2** — single flat keys → per-window keys (`ft.window.<uuid>.*`)
+- **v0.2 → v0.3** — each window becomes a **note tab** (`ft.note.<uuid>.*`), with the first window's visual settings becoming the panel-wide settings (`ft.panel.*`)
+
+The old v0.2 keys (`ft.windows`, `ft.window.<uuid>.*`) are **kept on disk** as a rollback / data-safety record even though the v0.2 source code has been removed. `./scripts/uninstall.sh --purge` clears everything if you want a clean slate.
 
 ## Known limitations
 
 - **Unsigned local builds only.** No code signing, no notarization, no sandbox. Distributing the built `.app` to another Mac will trigger a Gatekeeper warning.
 - **Launch at Login** uses `SMAppService`, which expects the app to live at a stable install location. From an unsigned development build it may report `.notRegistered` even after enabling — install via `install.sh` first.
-- **Click-through Mode is still being tested and may need further hardening.** The AppKit API (`panel.ignoresMouseEvents`) is correct and the rescue path (`Disable Click-through (All Windows)` menu item) prevents trap states, but real-world pass-through reliability has not been fully verified across macOS versions yet.
+- **Click-through Mode** is being used in real work and may need further hardening; if clicks don't pass through on your macOS version, please open an issue. The on-screen "Exit click-through" control and the menu rescue both prevent a trap state.
+- **One tabbed panel.** Multiple separate tabbed panels ("New Panel") is **not implemented yet** — it's deferred and may be reconsidered after a week of real use.
 - **No global hotkey** for show/hide. The menu bar icon is the always-available entry point.
-- **Closed-but-orphaned UserDefaults from earlier `Close Window` semantics** (pre-v0.2) may still be present in `com.floattext.FloatText` — they don't affect behavior and `./scripts/uninstall.sh --purge` removes everything. The current v0.2 `Hide` / `Delete` actions don't create orphans.
 - **Narrow panels + large text** can wrap awkwardly. Either widen the panel or reduce font size to taste.
 
 ## Privacy
@@ -186,13 +191,15 @@ Delete Current Window and Clear Current Note are intentionally without shortcuts
 ```
 Sources/FloatText/
 ├── FloatTextApp.swift             @main + AppDelegate + MenuBarExtra
-├── AppState.swift                 Global settings + windows[] + legacy-key migration
-├── WindowState.swift              Per-window @Published state (text, frame, color, …)
-├── WindowManager.swift            Owns [FloatingPanelController]; new/hide/delete/show
+├── AppState.swift                 Global settings + panel + notes[] + non-destructive migration
+├── PanelState.swift               Panel-wide @Published state (frame, font, alignment, RTL, opacity, …)
+├── NoteState.swift                Per-note @Published state (text, color, timestamps)
+├── PanelController.swift          Owns the floating panel, the exit-control window, and tab actions
 ├── FloatingPanel.swift            NSPanel subclass — activating, floating, borderless feel
-├── FloatingPanelController.swift  Wires one panel to its WindowState; observes state
-├── OverlayView.swift              SwiftUI root: top header (manage) + text + bottom bar
-├── ControlsBar.swift              Bottom formatting bar only (A-/A+, color, align, RTL, focus, opacity)
+├── ClickThroughExitWindow.swift   Separate always-interactive "Exit click-through" control window
+├── OverlayView.swift              SwiftUI root: action header + tab strip + editor + bottom bar
+├── TabBar.swift                   Horizontal tab strip (color dots, active styling)
+├── ControlsBar.swift              Bottom formatting bar (font, color, align, RTL, focus, opacity)
 ├── RTLTextView.swift              NSViewRepresentable around NSTextView (RTL-stable)
 ├── MenuBarMenu.swift              MenuBarExtra contents
 └── LaunchAtLogin.swift            SMAppService wrapper
@@ -203,10 +210,11 @@ See [docs/design-notes.md](docs/design-notes.md) for rationale on the panel choi
 ## Roadmap
 
 - Signed / notarized Developer ID build
+- Optional **New Panel** — multiple separate tabbed panels (deferred; reconsider after a week of use)
+- Per-tab font size / opacity (currently panel-wide)
 - Click-through hardening across macOS versions
-- Global hotkey for Show All / Hide All
+- Global hotkey for Show / Hide
 - Optional read-only / teleprompter scroll mode
-- Reopen-Deleted recovery (currently Delete is final)
 
 ## License
 

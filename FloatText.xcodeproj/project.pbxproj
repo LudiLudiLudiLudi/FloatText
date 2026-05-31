@@ -10,14 +10,11 @@
 		B100000000000000000000A1 /* FloatTextApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = B000000000000000000000A1 /* FloatTextApp.swift */; };
 		B100000000000000000000A2 /* AppState.swift in Sources */ = {isa = PBXBuildFile; fileRef = B000000000000000000000A2 /* AppState.swift */; };
 		B100000000000000000000A3 /* FloatingPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = B000000000000000000000A3 /* FloatingPanel.swift */; };
-		B100000000000000000000A4 /* FloatingPanelController.swift in Sources */ = {isa = PBXBuildFile; fileRef = B000000000000000000000A4 /* FloatingPanelController.swift */; };
 		B100000000000000000000A5 /* RTLTextView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B000000000000000000000A5 /* RTLTextView.swift */; };
 		B100000000000000000000A6 /* OverlayView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B000000000000000000000A6 /* OverlayView.swift */; };
 		B100000000000000000000A7 /* ControlsBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = B000000000000000000000A7 /* ControlsBar.swift */; };
 		B100000000000000000000A9 /* MenuBarMenu.swift in Sources */ = {isa = PBXBuildFile; fileRef = B000000000000000000000A9 /* MenuBarMenu.swift */; };
 		B100000000000000000000AA /* LaunchAtLogin.swift in Sources */ = {isa = PBXBuildFile; fileRef = B000000000000000000000AA /* LaunchAtLogin.swift */; };
-		B100000000000000000000B0 /* WindowState.swift in Sources */ = {isa = PBXBuildFile; fileRef = B000000000000000000000B0 /* WindowState.swift */; };
-		B100000000000000000000B1 /* WindowManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = B000000000000000000000B1 /* WindowManager.swift */; };
 		B100000000000000000000B2 /* NoteState.swift in Sources */ = {isa = PBXBuildFile; fileRef = B000000000000000000000B2 /* NoteState.swift */; };
 		B100000000000000000000B3 /* PanelState.swift in Sources */ = {isa = PBXBuildFile; fileRef = B000000000000000000000B3 /* PanelState.swift */; };
 		B100000000000000000000B4 /* PanelController.swift in Sources */ = {isa = PBXBuildFile; fileRef = B000000000000000000000B4 /* PanelController.swift */; };
@@ -30,14 +27,11 @@
 		B000000000000000000000A1 /* FloatTextApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FloatTextApp.swift; sourceTree = "<group>"; };
 		B000000000000000000000A2 /* AppState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppState.swift; sourceTree = "<group>"; };
 		B000000000000000000000A3 /* FloatingPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FloatingPanel.swift; sourceTree = "<group>"; };
-		B000000000000000000000A4 /* FloatingPanelController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FloatingPanelController.swift; sourceTree = "<group>"; };
 		B000000000000000000000A5 /* RTLTextView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RTLTextView.swift; sourceTree = "<group>"; };
 		B000000000000000000000A6 /* OverlayView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OverlayView.swift; sourceTree = "<group>"; };
 		B000000000000000000000A7 /* ControlsBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ControlsBar.swift; sourceTree = "<group>"; };
 		B000000000000000000000A9 /* MenuBarMenu.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarMenu.swift; sourceTree = "<group>"; };
 		B000000000000000000000AA /* LaunchAtLogin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LaunchAtLogin.swift; sourceTree = "<group>"; };
-		B000000000000000000000B0 /* WindowState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WindowState.swift; sourceTree = "<group>"; };
-		B000000000000000000000B1 /* WindowManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WindowManager.swift; sourceTree = "<group>"; };
 		B000000000000000000000B2 /* NoteState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NoteState.swift; sourceTree = "<group>"; };
 		B000000000000000000000B3 /* PanelState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PanelState.swift; sourceTree = "<group>"; };
 		B000000000000000000000B4 /* PanelController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PanelController.swift; sourceTree = "<group>"; };
@@ -78,14 +72,11 @@
 				B000000000000000000000A1 /* FloatTextApp.swift */,
 				B000000000000000000000A2 /* AppState.swift */,
 				B000000000000000000000A3 /* FloatingPanel.swift */,
-				B000000000000000000000A4 /* FloatingPanelController.swift */,
 				B000000000000000000000A5 /* RTLTextView.swift */,
 				B000000000000000000000A6 /* OverlayView.swift */,
 				B000000000000000000000A7 /* ControlsBar.swift */,
 				B000000000000000000000A9 /* MenuBarMenu.swift */,
 				B000000000000000000000AA /* LaunchAtLogin.swift */,
-				B000000000000000000000B0 /* WindowState.swift */,
-				B000000000000000000000B1 /* WindowManager.swift */,
 				B000000000000000000000B2 /* NoteState.swift */,
 				B000000000000000000000B3 /* PanelState.swift */,
 				B000000000000000000000B4 /* PanelController.swift */,
@@ -167,14 +158,11 @@
 				B100000000000000000000A1 /* FloatTextApp.swift in Sources */,
 				B100000000000000000000A2 /* AppState.swift in Sources */,
 				B100000000000000000000A3 /* FloatingPanel.swift in Sources */,
-				B100000000000000000000A4 /* FloatingPanelController.swift in Sources */,
 				B100000000000000000000A5 /* RTLTextView.swift in Sources */,
 				B100000000000000000000A6 /* OverlayView.swift in Sources */,
 				B100000000000000000000A7 /* ControlsBar.swift in Sources */,
 				B100000000000000000000A9 /* MenuBarMenu.swift in Sources */,
 				B100000000000000000000AA /* LaunchAtLogin.swift in Sources */,
-				B100000000000000000000B0 /* WindowState.swift in Sources */,
-				B100000000000000000000B1 /* WindowManager.swift in Sources */,
 				B100000000000000000000B2 /* NoteState.swift in Sources */,
 				B100000000000000000000B3 /* PanelState.swift in Sources */,
 				B100000000000000000000B4 /* PanelController.swift in Sources */,

@@ -2,7 +2,47 @@
 
 All notable changes to FloatText are recorded here.
 
-## Unreleased
+## v0.3 — Single tabbed panel
+
+The multiple-floating-windows model became cluttered (several translucent overlays on screen at once). v0.3 replaces it with **one floating panel containing note tabs**.
+
+### Added
+
+- **Single floating panel with internal note tabs.** A tab strip switches between notes; each tab has its own text and its own undo stack. New tabs are created with **+** in the tab strip or **New Tab** (⌘T) in the menu.
+- **Per-note text color.** Each note carries its own text color, shown as a **color dot** on its tab. The color picker in the bottom bar edits the *active* note only. New tabs inherit the active note's color.
+- **Active-tab styling.** The active tab has a filled background, a border, and a bold label so it's always obvious which note is shown.
+- **Two-row top area.** An action header (Delete Note 🗑 left; Hide Panel 👁 + Clear Note 🧹 right) is visually separated from the tab strip below, so destructive actions can't be mistaken for tabs.
+- **Clear Note** — wipes only the active note's text (the tab stays); requires confirmation.
+- **Delete Note** — permanently removes the active note (tab + its text/color); requires confirmation. Deleting the last note creates a fresh blank one.
+- **Hide Panel** — hides the whole panel non-destructively; **Show Panel** brings it back (and creates a blank note if somehow none exist).
+- **Click-through escape control.** Because `NSPanel.ignoresMouseEvents` is window-level (no in-panel button can be clicked while it's on), click-through now shows a **separate, always-interactive "Exit click-through" control window** at the panel's top-right. The menu **Disable Click-through** remains as a second rescue. No trap state.
+- **Background strength** slider with a wider, readable range (**0.35 … 1.0**): noticeably transparent at the low end, nearly solid at the high end. Only the backing layer changes — text keeps full alpha.
+- **Non-destructive v0.2 → v0.3 migration.** Each v0.2 window becomes a note tab (`ft.note.<uuid>.*`); the first window's visuals become the panel-wide settings (`ft.panel.*`). Runs once, gated on `ft.migration.v3.takeoverCompleted`, with a strict write order so a crash mid-flight retries safely. v0.2 keys are read, never deleted.
+
+### Changed
+
+- Visual settings split: **per-note** = text color; **panel-wide** = font size, alignment, RTL direction, background strength, focus mode, click-through.
+- `AppState` now holds one `PanelState` + a `notes: [NoteState]` array + `activeNoteID` instead of a windows array.
+- The editor is rebuilt per tab (SwiftUI `.id(activeNoteID)`), giving each tab a clean `NSTextView` and its own undo stack.
+- Tab label font size increased (11 → 13 pt) for readability; color dot 7 → 8 pt.
+- Click-through no longer restructures the panel — the tab header stays visible with a small "click-through" status badge.
+
+### Fixed
+
+- **Background-strength slider was inert.** Root cause: `OverlayView` observed `appState` but read `appState.panel.backgroundOpacity`; as a nested `ObservableObject`, `PanelState`'s changes didn't re-render the view. Now `OverlayView` observes `PanelState` directly.
+- **Click-through stuck-panel bug.** Root cause: the Combine subscriber re-read `appState.panel.clickThrough`, but `@Published` fires in `willSet` (before the value commits) — so every toggle applied the *inverted* state, leaving the panel ignoring all mouse events after being turned off. Fixed by using the value the publisher delivers; the OFF path now fully restores interactivity (`makeKey`, `activate`, first responder, movable-by-background).
+
+### Removed (source only — data preserved)
+
+- Deleted the dormant v0.2 source: `WindowState.swift`, `WindowManager.swift`, `FloatingPanelController.swift`, and the `AppState.windows[]` plumbing + redundant snapshot migration.
+- **On-disk v0.2 data is intentionally preserved** (`ft.windows`, `ft.window.<uuid>.*`) as a rollback / data-safety record. `./scripts/uninstall.sh --purge` clears everything.
+
+### Not yet implemented
+
+- **New Panel** — multiple separate tabbed panels. Deferred; will be reconsidered after about a week of real use.
+- Per-tab font size / opacity (currently panel-wide).
+
+## v0.2 — Multiple windows (superseded by v0.3)
 
 ### Added
 

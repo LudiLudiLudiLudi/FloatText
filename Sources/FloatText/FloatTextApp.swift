@@ -18,9 +18,7 @@ struct FloatTextApp: App {
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
     let state = AppState()
-    /// Single tabbed panel (v0.3). The old WindowManager / per-window
-    /// FloatingPanelController code stays on disk but is no longer
-    /// instantiated.
+    /// Single tabbed panel (v0.3).
     lazy var panelController = PanelController(appState: state)
 
     func applicationDidFinishLaunching(_ notification: Notification) {
