@@ -76,11 +76,11 @@ struct ControlsBar: View {
             HStack(spacing: 6) {
                 Image(systemName: "circle.lefthalf.filled")
                     .foregroundStyle(.white.opacity(0.6))
-                // Background strength. Clamped to a readable band so the
-                // panel never becomes too thin to read against the apps
-                // behind it, while still giving a clearly noticeable change
-                // across the slider's travel.
-                Slider(value: $panel.backgroundOpacity, in: 0.45...0.95)
+                // Background strength. Wide band 0.35...1.0: at minimum the
+                // panel is noticeably transparent, at maximum almost fully
+                // dark/opaque. Only the black backing layer is affected —
+                // text keeps full alpha and stays readable.
+                Slider(value: $panel.backgroundOpacity, in: 0.35...1.0)
                     .controlSize(.mini)
                     .help("Background strength")
             }

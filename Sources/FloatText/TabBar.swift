@@ -22,8 +22,8 @@ struct TabBar: View {
                 }
                 Button(action: onNewTab) {
                     Image(systemName: "plus")
-                        .font(.system(size: 10, weight: .semibold))
-                        .frame(width: 18, height: 18)
+                        .font(.system(size: 12, weight: .semibold))
+                        .frame(width: 20, height: 20)
                 }
                 .buttonStyle(.borderless)
                 .foregroundStyle(.white.opacity(0.85))
@@ -48,13 +48,13 @@ private struct TabButton: View {
                 // identifiable at a glance.
                 Circle()
                     .fill(Color(nsColor: note.textColor))
-                    .frame(width: 7, height: 7)
+                    .frame(width: 8, height: 8)
                     .overlay(
                         Circle().stroke(Color.black.opacity(0.35), lineWidth: 0.5)
                     )
 
                 Text(note.displayTitle)
-                    .font(.system(size: 11, weight: isActive ? .semibold : .regular))
+                    .font(.system(size: 13, weight: isActive ? .semibold : .regular))
                     .lineLimit(1)
             }
             .padding(.horizontal, 8)

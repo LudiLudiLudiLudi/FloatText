@@ -12,6 +12,11 @@ final class PanelController: NSObject, NSWindowDelegate, ObservableObject {
     private(set) var panel: FloatingPanel
     private var cancellables = Set<AnyCancellable>()
 
+    /// On-screen escape hatch shown only while click-through is on.
+    private lazy var exitWindow = ClickThroughExitWindow { [weak self] in
+        self?.forceDisableClickThrough()
+    }
+
     init(appState: AppState) {
         self.appState = appState
         self.panel = FloatingPanel(contentRect: appState.panel.windowFrame)
@@ -66,6 +71,7 @@ final class PanelController: NSObject, NSWindowDelegate, ObservableObject {
     }
 
     func hide() {
+        exitWindow.dismiss()
         panel.orderOut(nil)
     }
 
@@ -139,10 +145,16 @@ final class PanelController: NSObject, NSWindowDelegate, ObservableObject {
         // PanelController is @MainActor and all callers are main-thread, so
         // this is already safe — kept explicit for clarity.
         panel.ignoresMouseEvents = on
-        if !on {
+        if on {
+            // Show the separate, always-interactive exit control over the main
+            // panel's top-right corner. The main panel can't be dragged while
+            // it ignores mouse events, so positioning once on show is enough.
+            exitWindow.present(over: panel.frame)
+        } else {
             // Full interactivity restore: accept events, become key, reactivate
             // the app, and put the caret back in the text view so the user can
             // immediately type AND drag the window again.
+            exitWindow.dismiss()
             panel.ignoresMouseEvents = false
             panel.isMovableByWindowBackground = true
             panel.makeKeyAndOrderFront(nil)
